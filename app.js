@@ -104,6 +104,8 @@ let currentFilterType = 'problem';
 let filterProvince = '';
 let filterDistrict = '';
 let turnstileWidgetId = null;
+let turnstileCommentWidgetId = null;
+let turnstileReportWidgetId = null;
 
 
 let deviceId = localStorage.getItem('hg_device_id');
@@ -413,7 +415,7 @@ function setupEventListeners() {
             if (typeof turnstile !== 'undefined') {
                 if (turnstileWidgetId === null) {
                     turnstileWidgetId = turnstile.render('#turnstile-container', {
-                        sitekey: '1x00000000000000000000AA',
+                        sitekey: '0x4AAAAAACnnK3PbbygHiFnx',
                         theme: 'light'
                     });
                 }
@@ -557,7 +559,7 @@ function setupEventListeners() {
         e.preventDefault();
 
         
-        const turnstileResponse = typeof turnstile !== 'undefined' ? turnstile.getResponse() : null;
+        const turnstileResponse = typeof turnstile !== 'undefined' && turnstileWidgetId !== null ? turnstile.getResponse(turnstileWidgetId) : null;
         if (!turnstileResponse) {
             alert('Please complete the security check to post.');
             return;
@@ -1098,6 +1100,20 @@ function renderFeed(posts) {
             document.getElementById('reportPostId').value = id;
             document.getElementById('reportReason').value = '';
             openModal('reportModal');
+
+            const tryRenderTurnstileReport = () => {
+                if (typeof turnstile !== 'undefined') {
+                    if (turnstileReportWidgetId === null) {
+                        turnstileReportWidgetId = turnstile.render('#turnstile-container-report', {
+                            sitekey: '0x4AAAAAACnnK3PbbygHiFnx',
+                            theme: 'light'
+                        });
+                    }
+                } else {
+                    setTimeout(tryRenderTurnstileReport, 100);
+                }
+            };
+            tryRenderTurnstileReport();
         });
     });
 
@@ -1108,6 +1124,20 @@ function renderFeed(posts) {
             document.getElementById('commentPostId').value = id;
             openModal('commentsModal');
             fetchComments(id);
+
+            const tryRenderTurnstileComment = () => {
+                if (typeof turnstile !== 'undefined') {
+                    if (turnstileCommentWidgetId === null) {
+                        turnstileCommentWidgetId = turnstile.render('#turnstile-container-comment', {
+                            sitekey: '0x4AAAAAACnnK3PbbygHiFnx',
+                            theme: 'light'
+                        });
+                    }
+                } else {
+                    setTimeout(tryRenderTurnstileComment, 100);
+                }
+            };
+            tryRenderTurnstileComment();
         });
     });
 }
@@ -1115,6 +1145,12 @@ function renderFeed(posts) {
 
 document.getElementById('reportForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    const turnstileResponse = typeof turnstile !== 'undefined' && turnstileReportWidgetId !== null ? turnstile.getResponse(turnstileReportWidgetId) : null;
+    if (!turnstileResponse) {
+        alert(currentLang === 'en' ? 'Please complete the security check to submit a report.' : 'à¤•à¥ƒà¤ªà¤¯à¤¾ à¤¸à¥ à¤°à¤•à¥ à¤·à¤¾ à¤œà¤¾à¤ à¤š à¤ªà¥‚à¤°à¤¾ à¤—à¤°à¥ à¤¨à¥ à¤¹à¥‹à¤¸à¥ à¥¤');
+        return;
+    }
 
     const postId = document.getElementById('reportPostId').value;
     const reason = document.getElementById('reportReason').value;
@@ -1144,10 +1180,13 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
         document.getElementById('reportInitialState').classList.add('hidden');
         document.getElementById('reportSuccessState').classList.remove('hidden');
 
-        
+        if (typeof turnstile !== 'undefined' && turnstileReportWidgetId !== null) {
+            turnstile.reset(turnstileReportWidgetId);
+        }
+
         setTimeout(() => {
             closeModal('reportModal');
-            
+
             setTimeout(() => {
                 document.getElementById('reportInitialState').classList.remove('hidden');
                 document.getElementById('reportSuccessState').classList.add('hidden');
@@ -1315,6 +1354,12 @@ document.getElementById('commentForm').addEventListener('submit', async (e) => {
         return;
     }
 
+    const turnstileResponse = typeof turnstile !== 'undefined' && turnstileCommentWidgetId !== null ? turnstile.getResponse(turnstileCommentWidgetId) : null;
+    if (!turnstileResponse) {
+        alert(currentLang === 'en' ? 'Please complete the security check to post a comment.' : 'à¤•à¥ƒà¤ªà¤¯à¤¾ à¤¸à¥ à¤°à¤•à¥ à¤·à¤¾ à¤œà¤¾à¤ à¤š à¤ªà¥‚à¤°à¤¾ à¤—à¤°à¥ à¤¨à¥ à¤¹à¥‹à¤¸à¥ à¥¤');
+        return;
+    }
+
     const submitBtn = document.getElementById('submitCommentBtn');
     const originalText = submitBtn.textContent;
     submitBtn.textContent = 'Posting...';
@@ -1339,6 +1384,10 @@ document.getElementById('commentForm').addEventListener('submit', async (e) => {
     } else {
         document.getElementById('commentContent').value = '';
         
+        if (typeof turnstile !== 'undefined' && turnstileCommentWidgetId !== null) {
+            turnstile.reset(turnstileCommentWidgetId);
+        }
+
         const commentCountEl = document.querySelector(`#post-${postId} .comment-btn .vote-count`);
         if (commentCountEl) {
             commentCountEl.textContent = parseInt(commentCountEl.textContent) + 1;
