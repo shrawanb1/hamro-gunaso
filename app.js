@@ -493,7 +493,11 @@ function setupEventListeners() {
         const password = document.getElementById('authPassword').value;
         const msgEl = document.getElementById('authMessage');
         const errEl = document.getElementById('authError');
+        const submitBtn = document.getElementById('authSubmitBtn');
+        const originalText = submitBtn.innerHTML;
 
+        submitBtn.textContent = 'Authenticating...';
+        submitBtn.disabled = true;
         msgEl.textContent = 'Authenticating...';
         errEl.textContent = '';
 
@@ -510,6 +514,8 @@ function setupEventListeners() {
                 if (signUpError) {
                     errEl.textContent = signUpError.message;
                     msgEl.textContent = '';
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
                 } else {
                     if (signUpData.session) {
                         msgEl.textContent = '';
@@ -523,15 +529,21 @@ function setupEventListeners() {
                         closeModal('authModal');
                         showToast('Account created! Please check your email to verify and log in.');
                     }
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
                 }
             } else {
                 errEl.textContent = error.message;
                 msgEl.textContent = '';
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
         } else {
             msgEl.textContent = '';
             errEl.textContent = '';
             document.getElementById('authForm').reset();
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         }
     });
 

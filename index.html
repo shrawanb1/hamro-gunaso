@@ -24,12 +24,16 @@
 <body style="overflow: hidden;"> 
     
     <div id="preloader" class="preloader">
-        <div class="preloader-content">
+        <div class="preloader-content" style="display: flex; flex-direction: column; align-items: center;">
             <div class="preloader-logo">Hamro <span>Gunaso</span></div>
+            <div class="everonix-watermark" style="color: rgba(255,255,255,0.7);">a product of everonix</div>
         </div>
     </div>
     <header class="navbar">
-        <div class="logo" data-i18n="logoText">Hamro <span>Gunaso</span></div>
+        <div class="logo-container" style="display: flex; flex-direction: column;">
+            <div class="logo" data-i18n="logoText">Hamro <span>Gunaso</span></div>
+            <div class="everonix-watermark">a product of everonix</div>
+        </div>
         <div class="auth-buttons" style="display:flex; align-items:center;">
             <button id="langToggle" class="outline-btn"
                 style="border-radius: 50%; width: 40px; height: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; border-color: var(--border); margin-right: 0.5rem;"
@@ -322,6 +326,10 @@
 
     <footer style="text-align: center; padding: 2rem 1rem; border-top: 1px solid var(--border); margin-top: 3rem; color: var(--text-light); font-size: 0.9rem;">
         <div class="container">
+            <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1rem;">
+                <div class="logo" style="margin-bottom: 0.25rem;">Hamro <span>Gunaso</span></div>
+                <div class="everonix-watermark">a product of everonix</div>
+            </div>
             <p>&copy; 2026 Hamro Gunaso. All rights reserved.</p>
             <div style="margin-top: 0.5rem; display: flex; justify-content: center; gap: 1.5rem;">
                 <a href="/privacy-policy" style="color: var(--text-light); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-light)'">Privacy Policy</a>
