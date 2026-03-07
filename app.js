@@ -865,6 +865,10 @@ function renderFeed(posts) {
                     ${pinIcon}
                     <span data-i18n="${post.is_pinned ? 'unpinAction' : 'pinAction'}">${translations[currentLang][post.is_pinned ? 'unpinAction' : 'pinAction']}</span>
                 </button>
+                <button class="dropdown-item copy-id-btn" data-userid="${post.user_id}" data-elementid="${post.id}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <span>Copy User ID</span>
+                </button>
             `;
         }
 
@@ -898,15 +902,7 @@ function renderFeed(posts) {
                     <div class="card-meta">
                         <span class="card-type ${post.type === 'solution' ? 'suggestion' : post.type}" data-i18n="${post.type === 'problem' ? 'labelProblem' : 'labelSuggestion'}">${translations[currentLang][post.type === 'problem' ? 'labelProblem' : 'labelSuggestion']}</span>
                         <div class="card-author" style="margin-top: 0.5rem; position: relative;">
-                            ${isAdmin ? `
-                            <div class="admin-user-id-tooltip" id="tooltip-${post.id}">
-                                <span>ID: ${post.user_id}</span>
-                                <button class="copy-id-btn" data-userid="${post.user_id}" data-elementid="${post.id}" title="Copy ID">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                                </button>
-                            </div>
-                            ` : ''}
-                            <img src="${authorAvatar}" class="author-avatar ${isAdmin ? 'admin-clickable' : ''}" data-elementid="${post.id}" alt="Avatar">
+                            <img src="${authorAvatar}" class="author-avatar" alt="Avatar">
                             <span class="truncate-text">${authorName}</span>
                         </div>
                     </div>
@@ -1302,13 +1298,37 @@ async function fetchComments(postId) {
 
         const isCommentOwner = currentUser && currentUser.id === comment.user_id;
         const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
-        let deleteBtnHTML = '';
+        let commentDropdownItems = '';
 
         if (isCommentOwner || isAdmin) {
-            deleteBtnHTML = `
-                <button class="delete-comment-btn" data-id="${comment.id}" data-post-id="${postId}" style="background:none; border:none; color:var(--danger); cursor:pointer; padding: 0.25rem; display:flex; align-items:center;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            commentDropdownItems += `
+                <button class="dropdown-item danger delete-comment-btn" data-id="${comment.id}" data-post-id="${postId}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2-2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <span data-i18n="deleteAction">${translations[currentLang].deleteAction || 'Delete'}</span>
                 </button>
+            `;
+        }
+        
+        if (isAdmin) {
+             commentDropdownItems += `
+                 <button class="dropdown-item copy-id-btn" data-userid="${comment.user_id}" data-elementid="comment-${comment.id}">
+                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                     <span>Copy User ID</span>
+                 </button>
+             `;
+        }
+
+        let commentActionMenu = '';
+        if (commentDropdownItems) {
+            commentActionMenu = `
+                <div class="options-menu">
+                    <button class="options-btn" onclick="toggleDropdown('comment-${comment.id}')" aria-label="Options" style="padding: 0.2rem; transform: scale(0.85); margin-left:-5px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                    </button>
+                    <div class="options-dropdown" id="dropdown-comment-${comment.id}">
+                        ${commentDropdownItems}
+                    </div>
+                </div>
             `;
         }
 
@@ -1323,22 +1343,14 @@ async function fetchComments(postId) {
             <div class="comment-card ${isAdminComment ? 'admin-comment' : ''}" id="comment-${comment.id}">
                 <div class="comment-meta" style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="display: flex; gap: 0.5rem; align-items: center; position: relative;">
-                        ${isAdmin ? `
-                        <div class="admin-user-id-tooltip comment-tooltip" id="tooltip-comment-${comment.id}">
-                            <span>ID: ${comment.user_id}</span>
-                            <button class="copy-id-btn" data-userid="${comment.user_id}" data-elementid="comment-${comment.id}" title="Copy ID">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                            </button>
-                        </div>
-                        ` : ''}
-                        <img src="${avatarUrl}" class="${isAdmin ? 'admin-clickable' : ''}" style="width:20px; height:20px; border-radius:50%;" data-elementid="comment-${comment.id}" alt="Avatar">
+                        <img src="${avatarUrl}" style="width:20px; height:20px; border-radius:50%;" alt="Avatar">
                         <div class="comment-author" style="display: flex; align-items: center; gap: 0.4rem;">
                             ${authorName}
                             ${adminBadgeHTML}
                         </div>
                         <div class="comment-time" style="font-size:0.75rem; color:var(--text-light);">${timeStr}</div>
                     </div>
-                    ${deleteBtnHTML}
+                    ${commentActionMenu}
                 </div>
                 <div class="comment-content">${escapeHTML(comment.content)}</div>
             </div>
@@ -1473,57 +1485,34 @@ window.toggleDropdown = toggleDropdown;
 window.closeModal = closeModal;
 window.openModal = openModal;
 
-// Global click delegation for tooltips and copying
+// Global click delegation for copying User IDs from dropdowns
 document.addEventListener('click', (e) => {
     // 1. Handle Copy ID Button Click
     const copyBtn = e.target.closest('.copy-id-btn');
     if (copyBtn) {
         const userId = copyBtn.dataset.userid;
-        const elementId = copyBtn.dataset.elementid;
         
         navigator.clipboard.writeText(userId).then(() => {
-            const tooltip = document.getElementById(`tooltip-${elementId}`);
-            if (tooltip) {
-                const originalHTML = tooltip.innerHTML;
-                tooltip.innerHTML = `<span style="color: var(--secondary); font-weight: 500;">Copied!</span>`;
+            const span = copyBtn.querySelector('span');
+            if (span) {
+                const originalText = span.textContent;
+                span.textContent = 'Copied!';
+                span.style.color = 'var(--secondary)';
+                
                 setTimeout(() => {
-                    tooltip.classList.remove('show');
-                    // Restore original HTML after animation
-                    setTimeout(() => tooltip.innerHTML = originalHTML, 300);
+                    span.textContent = originalText;
+                    span.style.color = '';
                 }, 1000);
             }
         }).catch(err => {
             console.error('Failed to copy ID: ', err);
             alert('Failed to copy ID.');
         });
-        return; // Stop further processing
-    }
-
-    // 2. Handle Avatar Click to toggle tooltip
-    const avatar = e.target.closest('.author-avatar.admin-clickable');
-    if (avatar) {
-        if (!isAdmin) return;
         
-        const elementId = avatar.dataset.elementid;
-        
-        // Close other tooltips first
-        document.querySelectorAll('.admin-user-id-tooltip.show').forEach(t => {
-            if (t.id !== `tooltip-${elementId}`) {
-                t.classList.remove('show');
-            }
-        });
-
-        const tooltip = document.getElementById(`tooltip-${elementId}`);
-        if (tooltip) {
-            tooltip.classList.toggle('show');
+        // Optional: close the dropdown menu after clicking
+        const dropdown = copyBtn.closest('.options-dropdown');
+        if (dropdown) {
+            dropdown.classList.remove('show');
         }
-        return; // Stop further processing
-    }
-
-    // 3. Handle clicks outside to close tooltips
-    if (!e.target.closest('.card-author') && !e.target.closest('.comment-meta')) {
-        document.querySelectorAll('.admin-user-id-tooltip.show').forEach(t => {
-            t.classList.remove('show');
-        });
     }
 });

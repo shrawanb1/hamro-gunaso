@@ -431,65 +431,7 @@ button {
     text-overflow: ellipsis;
 }
 
-.admin-clickable {
-    cursor: pointer;
-    transition: box-shadow 0.2s;
-}
 
-.admin-clickable:hover {
-    box-shadow: 0 0 0 2px var(--primary);
-}
-
-.admin-user-id-tooltip {
-    position: absolute;
-    top: calc(100% + 5px);
-    left: 0;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.5rem;
-    box-shadow: var(--shadow);
-    display: none;
-    align-items: center;
-    gap: 0.5rem;
-    z-index: 9999;
-    font-size: 0.8rem;
-    white-space: nowrap;
-    color: var(--text-dark);
-}
-
-.admin-user-id-tooltip.show {
-    display: flex;
-    animation: fadeIn 0.2s ease;
-}
-
-.admin-user-id-tooltip button {
-    background: transparent;
-    border: none;
-    color: var(--primary);
-    cursor: pointer;
-    padding: 0.2rem;
-    display: flex;
-    align-items: center;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-    position: relative;
-    z-index: 10000;
-}
-
-.admin-user-id-tooltip button * {
-    pointer-events: none;
-}
-
-.admin-user-id-tooltip button:hover {
-    background: #e0e7ff;
-}
-
-.comment-tooltip {
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-}
 
 .card-location svg {
     width: 14px;
