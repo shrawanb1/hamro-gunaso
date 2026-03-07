@@ -64,6 +64,30 @@ setTimeout(() => {
     }
 }, 4000);
 
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast-notification ${type}`;
+    toast.textContent = message;
+    Object.assign(toast.style, {
+        position: 'fixed', bottom: '20px', left: '50%', transform: 'translate(-50%, 50px)',
+        background: type === 'success' ? 'var(--secondary)' : 'var(--primary)',
+        color: '#fff', padding: '12px 24px', borderRadius: 'var(--radius)',
+        boxShadow: 'var(--shadow)', zIndex: '9999', opacity: '0', fontWeight: '500',
+        pointerEvents: 'none'
+    });
+    document.body.appendChild(toast);
+    if(typeof gsap !== 'undefined') {
+        gsap.to(toast, { y: -20, opacity: 1, duration: 0.4, ease: 'power2.out' });
+        setTimeout(() => {
+            gsap.to(toast, { y: 20, opacity: 0, duration: 0.4, ease: 'power2.in', onComplete: () => toast.remove() });
+        }, 4000);
+    } else {
+        toast.style.transform = 'translate(-50%, -20px)';
+        toast.style.opacity = '1';
+        setTimeout(() => toast.remove(), 4000);
+    }
+}
+
 const SUPABASE_URL = 'https://palifzjzhayfwtybtqmb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhbGlmemp6aGF5Znd0eWJ0cW1iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4Mjg0NzAsImV4cCI6MjA4ODQwNDQ3MH0.Wr9nFeME3c5AbCQSTtpi_SHQ16dLklLDXoS7fIWdGP8';
 
@@ -285,8 +309,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     handleAuthChange(session);
 
     
-    supabase.auth.onAuthStateChange((_event, session) => {
+    supabase.auth.onAuthStateChange((event, session) => {
         handleAuthChange(session);
+        if (event === 'SIGNED_IN') {
+            if (!authModal.classList.contains('hidden')) {
+                closeModal('authModal');
+                showToast('Successfully logged in!');
+            }
+        }
     });
 
     
@@ -481,12 +511,27 @@ function setupEventListeners() {
                     errEl.textContent = signUpError.message;
                     msgEl.textContent = '';
                 } else {
-                    msgEl.textContent = 'Account created. Please check email or continue if auto-login is enabled.';
+                    if (signUpData.session) {
+                        msgEl.textContent = '';
+                        document.getElementById('authForm').reset();
+                        closeModal('authModal');
+                        showToast('Account created and logged in successfully!');
+                        window.location.href = '#';
+                    } else {
+                        msgEl.textContent = '';
+                        document.getElementById('authForm').reset();
+                        closeModal('authModal');
+                        showToast('Account created! Please check your email to verify and log in.');
+                    }
                 }
             } else {
                 errEl.textContent = error.message;
                 msgEl.textContent = '';
             }
+        } else {
+            msgEl.textContent = '';
+            errEl.textContent = '';
+            document.getElementById('authForm').reset();
         }
     });
 
