@@ -433,11 +433,10 @@ button {
 
 .admin-clickable {
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: box-shadow 0.2s;
 }
 
 .admin-clickable:hover {
-    transform: scale(1.1);
     box-shadow: 0 0 0 2px var(--primary);
 }
 
@@ -453,7 +452,7 @@ button {
     display: none;
     align-items: center;
     gap: 0.5rem;
-    z-index: 100;
+    z-index: 9999;
     font-size: 0.8rem;
     white-space: nowrap;
     color: var(--text-dark);
@@ -474,6 +473,12 @@ button {
     align-items: center;
     border-radius: 4px;
     transition: background-color 0.2s;
+    position: relative;
+    z-index: 10000;
+}
+
+.admin-user-id-tooltip button * {
+    pointer-events: none;
 }
 
 .admin-user-id-tooltip button:hover {

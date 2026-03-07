@@ -821,8 +821,8 @@ function renderFeed(posts) {
     posts.forEach((post, index) => {
         const isAnonymous = post.is_anonymous;
         const authorName = isAnonymous ? `<span data-i18n="anonCitizen">${translations[currentLang].anonCitizen}</span>` : (post.author_full_name || `<span data-i18n="anonUser">${translations[currentLang].anonUser}</span>`);
-        const authorTextForAvatar = isAnonymous ? 'A+C' : (post.author_full_name || 'A+U');
-        const authorAvatar = isAnonymous ? `https://ui-avatars.com/api/?name=${encodeURIComponent(authorTextForAvatar)}&background=666&color=fff` : (post.author_avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorTextForAvatar)}&background=003893&color=fff`);
+        const authorTextForAvatar = isAnonymous ? 'Citizen' : (post.author_full_name || 'User');
+        const authorAvatar = isAnonymous ? `https://ui-avatars.com/api/?name=${encodeURIComponent(authorTextForAvatar)}&background=666666&color=ffffff` : (post.author_avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorTextForAvatar)}&background=003893&color=ffffff`);
 
         const dateStr = new Date(post.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
 
