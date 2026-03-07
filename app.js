@@ -901,12 +901,12 @@ function renderFeed(posts) {
                             ${isAdmin ? `
                             <div class="admin-user-id-tooltip" id="tooltip-${post.id}">
                                 <span>ID: ${post.user_id}</span>
-                                <button onclick="copyUserId('${post.user_id}', '${post.id}')" title="Copy ID">
+                                <button class="copy-id-btn" data-userid="${post.user_id}" data-elementid="${post.id}" title="Copy ID">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                                 </button>
                             </div>
                             ` : ''}
-                            <img src="${authorAvatar}" class="author-avatar ${isAdmin ? 'admin-clickable' : ''}" alt="Avatar" ${isAdmin ? `onclick="toggleUserIdTooltip('${post.id}')"` : ''}>
+                            <img src="${authorAvatar}" class="author-avatar ${isAdmin ? 'admin-clickable' : ''}" data-elementid="${post.id}" alt="Avatar">
                             <span class="truncate-text">${authorName}</span>
                         </div>
                     </div>
@@ -1326,12 +1326,12 @@ async function fetchComments(postId) {
                         ${isAdmin ? `
                         <div class="admin-user-id-tooltip comment-tooltip" id="tooltip-comment-${comment.id}">
                             <span>ID: ${comment.user_id}</span>
-                            <button onclick="copyUserId('${comment.user_id}', 'comment-${comment.id}')" title="Copy ID">
+                            <button class="copy-id-btn" data-userid="${comment.user_id}" data-elementid="comment-${comment.id}" title="Copy ID">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                             </button>
                         </div>
                         ` : ''}
-                        <img src="${avatarUrl}" class="${isAdmin ? 'admin-clickable' : ''}" style="width:20px; height:20px; border-radius:50%;" alt="Avatar" ${isAdmin ? `onclick="toggleUserIdTooltip('comment-${comment.id}')"` : ''}>
+                        <img src="${avatarUrl}" class="${isAdmin ? 'admin-clickable' : ''}" style="width:20px; height:20px; border-radius:50%;" data-elementid="comment-${comment.id}" alt="Avatar">
                         <div class="comment-author" style="display: flex; align-items: center; gap: 0.4rem;">
                             ${authorName}
                             ${adminBadgeHTML}
@@ -1473,42 +1473,54 @@ window.toggleDropdown = toggleDropdown;
 window.closeModal = closeModal;
 window.openModal = openModal;
 
-window.toggleUserIdTooltip = function(elementId) {
-    if (!isAdmin) return;
-    
-    // Close other tooltips first
-    document.querySelectorAll('.admin-user-id-tooltip.show').forEach(t => {
-        if (t.id !== `tooltip-${elementId}`) {
-            t.classList.remove('show');
-        }
-    });
-
-    const tooltip = document.getElementById(`tooltip-${elementId}`);
-    if (tooltip) {
-        tooltip.classList.toggle('show');
+// Global click delegation for tooltips and copying
+document.addEventListener('click', (e) => {
+    // 1. Handle Copy ID Button Click
+    const copyBtn = e.target.closest('.copy-id-btn');
+    if (copyBtn) {
+        const userId = copyBtn.dataset.userid;
+        const elementId = copyBtn.dataset.elementid;
+        
+        navigator.clipboard.writeText(userId).then(() => {
+            const tooltip = document.getElementById(`tooltip-${elementId}`);
+            if (tooltip) {
+                const originalHTML = tooltip.innerHTML;
+                tooltip.innerHTML = `<span style="color: var(--secondary); font-weight: 500;">Copied!</span>`;
+                setTimeout(() => {
+                    tooltip.classList.remove('show');
+                    // Restore original HTML after animation
+                    setTimeout(() => tooltip.innerHTML = originalHTML, 300);
+                }, 1000);
+            }
+        }).catch(err => {
+            console.error('Failed to copy ID: ', err);
+            alert('Failed to copy ID.');
+        });
+        return; // Stop further processing
     }
-};
 
-window.copyUserId = function(userId, elementId) {
-    navigator.clipboard.writeText(userId).then(() => {
+    // 2. Handle Avatar Click to toggle tooltip
+    const avatar = e.target.closest('.author-avatar.admin-clickable');
+    if (avatar) {
+        if (!isAdmin) return;
+        
+        const elementId = avatar.dataset.elementid;
+        
+        // Close other tooltips first
+        document.querySelectorAll('.admin-user-id-tooltip.show').forEach(t => {
+            if (t.id !== `tooltip-${elementId}`) {
+                t.classList.remove('show');
+            }
+        });
+
         const tooltip = document.getElementById(`tooltip-${elementId}`);
         if (tooltip) {
-            const originalHTML = tooltip.innerHTML;
-            tooltip.innerHTML = `<span style="color: var(--secondary); font-weight: 500;">Copied!</span>`;
-            setTimeout(() => {
-                tooltip.classList.remove('show');
-                // Restore original HTML after animation
-                setTimeout(() => tooltip.innerHTML = originalHTML, 300);
-            }, 1000);
+            tooltip.classList.toggle('show');
         }
-    }).catch(err => {
-        console.error('Failed to copy ID: ', err);
-        alert('Failed to copy ID.');
-    });
-};
+        return; // Stop further processing
+    }
 
-// Close tooltips when clicking outside
-document.addEventListener('click', (e) => {
+    // 3. Handle clicks outside to close tooltips
     if (!e.target.closest('.card-author') && !e.target.closest('.comment-meta')) {
         document.querySelectorAll('.admin-user-id-tooltip.show').forEach(t => {
             t.classList.remove('show');
