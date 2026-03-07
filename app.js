@@ -897,8 +897,16 @@ function renderFeed(posts) {
                 <div class="card-header" style="justify-content: space-between; align-items: flex-start;">
                     <div class="card-meta">
                         <span class="card-type ${post.type === 'solution' ? 'suggestion' : post.type}" data-i18n="${post.type === 'problem' ? 'labelProblem' : 'labelSuggestion'}">${translations[currentLang][post.type === 'problem' ? 'labelProblem' : 'labelSuggestion']}</span>
-                        <div class="card-author" style="margin-top: 0.5rem;">
-                            <img src="${authorAvatar}" class="author-avatar" alt="Avatar">
+                        <div class="card-author" style="margin-top: 0.5rem; position: relative;">
+                            ${isAdmin ? `
+                            <div class="admin-user-id-tooltip" id="tooltip-${post.id}">
+                                <span>ID: ${post.user_id}</span>
+                                <button onclick="copyUserId('${post.user_id}', '${post.id}')" title="Copy ID">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                </button>
+                            </div>
+                            ` : ''}
+                            <img src="${authorAvatar}" class="author-avatar ${isAdmin ? 'admin-clickable' : ''}" alt="Avatar" ${isAdmin ? `onclick="toggleUserIdTooltip('${post.id}')"` : ''}>
                             <span class="truncate-text">${authorName}</span>
                         </div>
                     </div>
@@ -1314,8 +1322,16 @@ async function fetchComments(postId) {
         const commentHTML = `
             <div class="comment-card ${isAdminComment ? 'admin-comment' : ''}" id="comment-${comment.id}">
                 <div class="comment-meta" style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <img src="${avatarUrl}" style="width:20px; height:20px; border-radius:50%;" alt="Avatar">
+                    <div style="display: flex; gap: 0.5rem; align-items: center; position: relative;">
+                        ${isAdmin ? `
+                        <div class="admin-user-id-tooltip comment-tooltip" id="tooltip-comment-${comment.id}">
+                            <span>ID: ${comment.user_id}</span>
+                            <button onclick="copyUserId('${comment.user_id}', 'comment-${comment.id}')" title="Copy ID">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                        </div>
+                        ` : ''}
+                        <img src="${avatarUrl}" class="${isAdmin ? 'admin-clickable' : ''}" style="width:20px; height:20px; border-radius:50%;" alt="Avatar" ${isAdmin ? `onclick="toggleUserIdTooltip('comment-${comment.id}')"` : ''}>
                         <div class="comment-author" style="display: flex; align-items: center; gap: 0.4rem;">
                             ${authorName}
                             ${adminBadgeHTML}
@@ -1456,3 +1472,46 @@ document.getElementById('commentForm').addEventListener('submit', async (e) => {
 window.toggleDropdown = toggleDropdown;
 window.closeModal = closeModal;
 window.openModal = openModal;
+
+window.toggleUserIdTooltip = function(elementId) {
+    if (!isAdmin) return;
+    
+    // Close other tooltips first
+    document.querySelectorAll('.admin-user-id-tooltip.show').forEach(t => {
+        if (t.id !== `tooltip-${elementId}`) {
+            t.classList.remove('show');
+        }
+    });
+
+    const tooltip = document.getElementById(`tooltip-${elementId}`);
+    if (tooltip) {
+        tooltip.classList.toggle('show');
+    }
+};
+
+window.copyUserId = function(userId, elementId) {
+    navigator.clipboard.writeText(userId).then(() => {
+        const tooltip = document.getElementById(`tooltip-${elementId}`);
+        if (tooltip) {
+            const originalHTML = tooltip.innerHTML;
+            tooltip.innerHTML = `<span style="color: var(--secondary); font-weight: 500;">Copied!</span>`;
+            setTimeout(() => {
+                tooltip.classList.remove('show');
+                // Restore original HTML after animation
+                setTimeout(() => tooltip.innerHTML = originalHTML, 300);
+            }, 1000);
+        }
+    }).catch(err => {
+        console.error('Failed to copy ID: ', err);
+        alert('Failed to copy ID.');
+    });
+};
+
+// Close tooltips when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.card-author') && !e.target.closest('.comment-meta')) {
+        document.querySelectorAll('.admin-user-id-tooltip.show').forEach(t => {
+            t.classList.remove('show');
+        });
+    }
+});
