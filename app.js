@@ -824,7 +824,7 @@ function renderFeed(posts) {
         const authorTextForAvatar = isAnonymous ? 'A+C' : (post.author_full_name || 'A+U');
         const authorAvatar = isAnonymous ? `https://ui-avatars.com/api/?name=${encodeURIComponent(authorTextForAvatar)}&background=666&color=fff` : (post.author_avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorTextForAvatar)}&background=003893&color=fff`);
 
-        const dateStr = new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const dateStr = new Date(post.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
 
         const postDate = new Date(post.created_at);
         const now = new Date();
@@ -1290,7 +1290,7 @@ async function fetchComments(postId) {
             authorName = translations[currentLang].anonCitizen;
             avatarUrl = `https://ui-avatars.com/api/?name=A&background=666&color=fff`;
         }
-        const timeStr = new Date(comment.created_at).toLocaleString(currentLang === 'en' ? 'en-US' : 'ne-NP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const timeStr = new Date(comment.created_at).toLocaleString(currentLang === 'en' ? 'en-US' : 'ne-NP', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
 
         const isCommentOwner = currentUser && currentUser.id === comment.user_id;
         const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
