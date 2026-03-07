@@ -660,7 +660,8 @@ function setupEventListeners() {
                 }
             }
             
-            location.reload();
+            showToast(currentLang === 'en' ? 'Gunaso posted successfully!' : 'à¤—à¥ à¤¨à¤¾à¤¸à¥‹ à¤¸à¤«à¤²à¤¤à¤¾à¤ªà¥‚à¤°à¥ à¤µà¤• à¤ªà¥‹à¤¸à¥ à¤Ÿ à¤—à¤°à¤¿à¤¯à¥‹!');
+            fetchFeed();
         }
     });
 
