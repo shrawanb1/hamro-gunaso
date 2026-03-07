@@ -413,17 +413,23 @@ function setupEventListeners() {
 
         const tryRenderTurnstile = () => {
             if (typeof turnstile !== 'undefined') {
+                const btn = document.getElementById('submitPostBtn');
                 if (turnstileWidgetId === null) {
                     turnstileWidgetId = turnstile.render('#turnstile-container', {
                         sitekey: '0x4AAAAAACnnK3PbbygHiFnx',
-                        theme: 'light'
+                        theme: 'light',
+                        callback: function() { btn.disabled = false; },
+                        'expired-callback': function() { btn.disabled = true; }
                     });
+                } else {
+                    turnstile.reset(turnstileWidgetId);
+                    btn.disabled = true;
                 }
             } else {
                 setTimeout(tryRenderTurnstile, 100);
             }
         };
-        tryRenderTurnstile();
+        setTimeout(tryRenderTurnstile, 300);
     });
 
     const postBtnMobile = document.getElementById('postBtnMobile');
@@ -1103,17 +1109,23 @@ function renderFeed(posts) {
 
             const tryRenderTurnstileReport = () => {
                 if (typeof turnstile !== 'undefined') {
+                    const btn = document.getElementById('submitReportBtn');
                     if (turnstileReportWidgetId === null) {
                         turnstileReportWidgetId = turnstile.render('#turnstile-container-report', {
                             sitekey: '0x4AAAAAACnnK3PbbygHiFnx',
-                            theme: 'light'
+                            theme: 'light',
+                            callback: function() { btn.disabled = false; },
+                            'expired-callback': function() { btn.disabled = true; }
                         });
+                    } else {
+                        turnstile.reset(turnstileReportWidgetId);
+                        btn.disabled = true;
                     }
                 } else {
                     setTimeout(tryRenderTurnstileReport, 100);
                 }
             };
-            tryRenderTurnstileReport();
+            setTimeout(tryRenderTurnstileReport, 300);
         });
     });
 
@@ -1127,17 +1139,23 @@ function renderFeed(posts) {
 
             const tryRenderTurnstileComment = () => {
                 if (typeof turnstile !== 'undefined') {
+                    const btn = document.getElementById('submitCommentBtn');
                     if (turnstileCommentWidgetId === null) {
                         turnstileCommentWidgetId = turnstile.render('#turnstile-container-comment', {
                             sitekey: '0x4AAAAAACnnK3PbbygHiFnx',
-                            theme: 'light'
+                            theme: 'light',
+                            callback: function() { btn.disabled = false; },
+                            'expired-callback': function() { btn.disabled = true; }
                         });
+                    } else {
+                        turnstile.reset(turnstileCommentWidgetId);
+                        btn.disabled = true;
                     }
                 } else {
                     setTimeout(tryRenderTurnstileComment, 100);
                 }
             };
-            tryRenderTurnstileComment();
+            setTimeout(tryRenderTurnstileComment, 300);
         });
     });
 }

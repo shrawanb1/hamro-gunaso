@@ -18,7 +18,7 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 
 <body style="overflow: hidden;"> 
@@ -128,7 +128,7 @@
                 </div>
 
                 <button type="submit" class="primary-btn submit-btn" id="submitPostBtn"
-                    data-i18n="submitBtn">Submit</button>
+                    data-i18n="submitBtn" disabled>Submit</button>
             </form>
         </div>
     </div>
@@ -273,7 +273,7 @@
                 </div>
 
                 <button type="submit" id="submitCommentBtn" class="primary-btn submit-btn"
-                    data-i18n="postCommentBtn">Post Comment</button>
+                    data-i18n="postCommentBtn" disabled>Post Comment</button>
             </form>
         </div>
     </div>
@@ -304,7 +304,7 @@
                         <button type="button" class="secondary-btn" data-modal="reportModal" style="flex: 1;"
                             data-i18n="cancelAction">Cancel</button>
                         <button type="submit" id="submitReportBtn" class="primary-btn submit-btn" style="flex: 1;"
-                            data-i18n="flagAction">Flag for review</button>
+                            data-i18n="flagAction" disabled>Flag for review</button>
                     </div>
                 </form>
             </div>
