@@ -244,6 +244,28 @@ button {
     background-color: #f8fafc;
 }
 
+.external-link-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+@media (max-width: 480px) {
+    .external-link-wrapper {
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .external-link-wrapper>* {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+}
+
 .add-link-btn {
     background-color: #f1f5f9;
     color: var(--text-dark);
