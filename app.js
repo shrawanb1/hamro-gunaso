@@ -599,6 +599,18 @@ function setupEventListeners() {
         }
     });
 
+    // --- Media Upload Auth Check ---
+    const mediaUploadLabel = document.querySelector('.media-upload-label');
+    if (mediaUploadLabel) {
+        mediaUploadLabel.addEventListener('click', (e) => {
+            if (!currentUser) {
+                e.preventDefault(); // Stop the file input from opening
+                alert('Please sign in to attach photos, audio, or video.');
+                openModal('authModal');
+            }
+        });
+    }
+
     // --- Form Submissions ---
     document.getElementById('postForm').addEventListener('submit', async (e) => {
         e.preventDefault();
