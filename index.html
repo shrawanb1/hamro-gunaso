@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hamro Gunaso - Our Civic Voice</title>
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -13,16 +13,16 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="apple-touch-icon" href="favicon.svg">
 
-    
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    
+
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 
-<body style="overflow: hidden;"> 
-    
+<body style="overflow: hidden;">
+
     <div id="preloader" class="preloader">
         <div class="preloader-content" style="display: flex; flex-direction: column; align-items: center;">
             <div class="preloader-logo">Hamro <span>Gunaso</span></div>
@@ -69,12 +69,12 @@
 
 
         <section id="feed" class="feed-grid">
-            
+
             <div class="loading-state" data-i18n="loadingFeed">Loading posts...</div>
         </section>
     </main>
 
-    
+
     <div id="postModal" class="modal-backdrop hidden">
         <div class="modal">
             <button class="close-btn" data-modal="postModal">&times;</button>
@@ -105,7 +105,7 @@
                 <div class="form-group">
                     <select id="postDistrict" required disabled>
                         <option value="" disabled selected data-i18n="postDistrictPlaceholder">Select District</option>
-                        
+
                     </select>
                 </div>
                 <div class="form-group">
@@ -122,18 +122,80 @@
                     </label>
                 </div>
 
-                
+                <!-- Media Upload -->
                 <div class="form-group">
-                    <div id="turnstile-container"></div>
+                    <label class="media-upload-label" for="media-upload">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="16 16 12 12 8 16"></polyline>
+                            <line x1="12" y1="12" x2="12" y2="21"></line>
+                            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+                        </svg>
+                        <span>Attach Photos, Audio or Video <span class="media-upload-optional">(optional)</span></span>
+                    </label>
+                    <input type="file" id="media-upload" multiple accept="image/*,audio/*,video/*">
+                    <div id="media-preview"></div>
                 </div>
 
-                <button type="submit" class="primary-btn submit-btn" id="submitPostBtn"
-                    data-i18n="submitBtn" disabled>Submit</button>
+
+                <div class="form-group external-link-wrapper"
+                    style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                    <div id="turnstile-container"></div>
+                    <button type="button" class="add-link-btn" id="toggleLinkBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="link-icon">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                        </svg>
+                        <span id="toggleLinkBtnText" data-i18n="addLinkBtn">Add Link</span>
+                    </button>
+                </div>
+
+                <button type="submit" class="primary-btn submit-btn" id="submitPostBtn" data-i18n="submitBtn"
+                    disabled>Submit</button>
             </form>
         </div>
     </div>
 
-    
+    <!-- External Link Modal -->
+    <div id="externalLinkModal" class="modal-backdrop hidden" style="z-index: 1050;">
+        <div class="modal" style="max-width: 400px; padding: 2rem;">
+            <button class="close-btn" data-modal="externalLinkModal">&times;</button>
+            <h2 data-i18n="addCloudEvidence" style="font-size: 1.25rem; margin-bottom: 1.5rem;">Add External Cloud
+                Evidence</h2>
+
+            <form id="externalLinkForm">
+                <div class="form-group">
+                    <input type="url" id="modalExternalLinkInput" placeholder="https://drive.google.com/..." required
+                        data-i18n="externalLinkPlaceholder" style="margin-bottom: 1rem;">
+                </div>
+
+                <div class="form-group checkbox-group" style="margin-bottom: 1.5rem;">
+                    <input type="checkbox" id="modalLinkPublicInput" checked />
+                    <label for="modalLinkPublicInput" style="align-items: flex-start;">
+                        <span data-i18n="makeLinkPublic">Make visible to public</span>
+                        <span class="helper-text" style="display: block; margin-top: 2px; margin-left: 0;"
+                            data-i18n="makeLinkPublicHelper">Uncheck to only allow admins to view this link.</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="primary-btn submit-btn" id="saveExternalLinkBtn"
+                    data-i18n="saveLinkBtn">Save Link</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Upload Progress Overlay -->
+    <div id="upload-progress-overlay">
+        <div class="upload-progress-content">
+            <p class="upload-progress-label">Uploading media...</p>
+            <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="progress-bar-fill"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="editModal" class="modal-backdrop hidden">
         <div class="modal">
             <button class="close-btn" data-modal="editModal">&times;</button>
@@ -166,7 +228,7 @@
         </div>
     </div>
 
-    
+
     <div id="categorizeModal" class="modal-backdrop hidden">
         <div class="modal">
             <button class="close-btn" data-modal="categorizeModal">&times;</button>
@@ -199,7 +261,7 @@
         </div>
     </div>
 
-    
+
     <div id="voteAuthModal" class="modal-backdrop hidden">
         <div class="modal auth-modal" style="text-align: center;">
             <button class="close-btn" data-modal="voteAuthModal">&times;</button>
@@ -211,7 +273,7 @@
         </div>
     </div>
 
-    
+
     <div id="authModal" class="modal-backdrop hidden">
         <div class="modal auth-modal">
             <button class="close-btn" data-modal="authModal">&times;</button>
@@ -240,14 +302,14 @@
         </div>
     </div>
 
-    
+
     <div id="commentsModal" class="modal-backdrop hidden">
         <div class="modal auth-modal" style="max-width: 600px;">
             <button class="close-btn" data-modal="commentsModal">&times;</button>
             <h2 data-i18n="commentsTitle">Comments</h2>
             <div id="commentsList"
                 style="margin-top: 1.5rem; max-height: 400px; overflow-y: auto; padding-right: 0.5rem;">
-                
+
                 <div class="loading-state" data-i18n="loadingComments">Loading comments...</div>
             </div>
             <form id="commentForm"
@@ -267,18 +329,18 @@
                             community feedback feed.</span>
                     </label>
                 </div>
-                
+
                 <div class="form-group">
                     <div id="turnstile-container-comment"></div>
                 </div>
 
-                <button type="submit" id="submitCommentBtn" class="primary-btn submit-btn"
-                    data-i18n="postCommentBtn" disabled>Post Comment</button>
+                <button type="submit" id="submitCommentBtn" class="primary-btn submit-btn" data-i18n="postCommentBtn"
+                    disabled>Post Comment</button>
             </form>
         </div>
     </div>
 
-    
+
     <div id="reportModal" class="modal-backdrop hidden">
         <div class="modal auth-modal" style="max-width: 500px;">
             <button class="close-btn" data-modal="reportModal">&times;</button>
@@ -323,7 +385,7 @@
         </div>
     </div>
 
-    
+
     <div id="rateLimitModal" class="modal-backdrop hidden">
         <div class="modal auth-modal" style="text-align: center; border: 2px solid var(--primary);">
             <button class="close-btn" data-modal="rateLimitModal">&times;</button>
@@ -334,7 +396,8 @@
         </div>
     </div>
 
-    <footer style="text-align: center; padding: 2rem 1rem; border-top: 1px solid var(--border); margin-top: 3rem; color: var(--text-light); font-size: 0.9rem;">
+    <footer
+        style="text-align: center; padding: 2rem 1rem; border-top: 1px solid var(--border); margin-top: 3rem; color: var(--text-light); font-size: 0.9rem;">
         <div class="container">
             <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1rem;">
                 <div class="logo" style="margin-bottom: 0.25rem;">Hamro <span>Gunaso</span></div>
@@ -342,8 +405,14 @@
             </div>
             <p>&copy; 2026 Hamro Gunaso. All rights reserved.</p>
             <div style="margin-top: 0.5rem; display: flex; justify-content: center; gap: 1.5rem;">
-                <a href="/privacy-policy" style="color: var(--text-light); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-light)'">Privacy Policy</a>
-                <a href="/terms-of-service" style="color: var(--text-light); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-light)'">Terms of Service</a>
+                <a href="/privacy-policy"
+                    style="color: var(--text-light); text-decoration: none; transition: color 0.2s;"
+                    onmouseover="this.style.color='var(--primary)'"
+                    onmouseout="this.style.color='var(--text-light)'">Privacy Policy</a>
+                <a href="/terms-of-service"
+                    style="color: var(--text-light); text-decoration: none; transition: color 0.2s;"
+                    onmouseover="this.style.color='var(--primary)'"
+                    onmouseout="this.style.color='var(--text-light)'">Terms of Service</a>
             </div>
         </div>
     </footer>
@@ -356,7 +425,34 @@
         </svg>
     </button>
 
-    <script src="app.js" type="module" charset="UTF-8"></script>
+    <!-- Expanded Post Modal -->
+    <div class="expanded-modal-overlay" id="expandedPostOverlay"></div>
+    <div id="expanded-post-modal" class="expanded-modal">
+        <div class="expanded-modal-header">
+            <button class="close-expanded-btn" id="closeExpandedBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="expanded-media-container" id="expandedPostMedia"></div>
+        <div class="expanded-modal-right-pane">
+            <div class="expanded-content-container">
+                <div class="expanded-post-author" id="expandedPostAuthor"></div>
+                <div class="expanded-post-text" id="expandedPostText"></div>
+                <div class="expanded-post-stats" id="expandedPostStats"></div>
+            </div>
+            <div class="expanded-comments-container" id="expandedPostComments">
+                <!-- Comments loaded here -->
+            </div>
+            <div class="expanded-comment-input-area">
+                <input type="text" id="expandedCommentInput" placeholder="Write a comment..." class="input-field">
+                <button class="btn btn-primary" id="submitExpandedCommentBtn">Post</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
 </body>
 
 </html>

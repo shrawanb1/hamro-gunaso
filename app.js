@@ -7,11 +7,11 @@ const initPreloader = () => {
         const tl = gsap.timeline({
             onComplete: () => {
                 preloader.style.display = 'none';
-                document.body.style.overflow = 'auto'; 
-                
+                document.body.style.overflow = 'auto';
+
                 if (typeof animateHero === 'function') animateHero();
-                
-                
+
+
                 gsap.fromTo(".navbar, .hero h1, .hero p, .toggle-group, .feed-grid", {
                     y: 20,
                     opacity: 0
@@ -31,17 +31,17 @@ const initPreloader = () => {
             opacity: 1,
             ease: "back.out(1.7)"
         })
-        .to(".preloader-logo", {
-            duration: 0.8,
-            y: 0,
-            scale: 1.1,
-            ease: "power2.inOut"
-        }, "+=0.2")
-        .to("#preloader", {
-            duration: 1,
-            y: "-100%",
-            ease: "power4.inOut"
-        }, "+=0.3");
+            .to(".preloader-logo", {
+                duration: 0.8,
+                y: 0,
+                scale: 1.1,
+                ease: "power2.inOut"
+            }, "+=0.2")
+            .to("#preloader", {
+                duration: 1,
+                y: "-100%",
+                ease: "power4.inOut"
+            }, "+=0.3");
     };
 
     if (document.readyState === 'complete') {
@@ -76,7 +76,7 @@ function showToast(message, type = 'success') {
         pointerEvents: 'none'
     });
     document.body.appendChild(toast);
-    if(typeof gsap !== 'undefined') {
+    if (typeof gsap !== 'undefined') {
         gsap.to(toast, { y: -20, opacity: 1, duration: 0.4, ease: 'power2.out' });
         setTimeout(() => {
             gsap.to(toast, { y: 20, opacity: 0, duration: 0.4, ease: 'power2.in', onComplete: () => toast.remove() });
@@ -98,9 +98,12 @@ const locationData = { "Koshi": ["Bhojpur", "Dhankuta", "Ilam", "Jhapa", "Khotan
 
 
 const ADMIN_EMAIL = 'shrawanb121@gmail.com';
+
+let tempExternalLink = null;
+let tempIsLinkPublic = true;
 let currentUser = null;
 let isAdmin = false;
-let currentFilterType = 'problem'; 
+let currentFilterType = 'problem';
 let filterProvince = '';
 let filterDistrict = '';
 let turnstileWidgetId = null;
@@ -185,7 +188,7 @@ const translations = {
         pinnedBadge: "Pinned by Admin",
         adminAction: "Hamro Gunaso Admin"
     },
-        np: {
+    np: {
         logoText: "हाम्रो <span>गुनासो</span>",
         postButton: "गुनासो राख्नुहोस्",
         loginSignup: "लगइन / साइन अप",
@@ -252,7 +255,7 @@ const translations = {
         unpinAction: "पिन हटाउनुहोस्",
         pinnedBadge: "प्रशासकद्वारा पिन गरिएको",
         adminAction: "हाम्रो गुनासो एडमिन"
-}
+    }
 };
 
 let currentLang = localStorage.getItem('language') || 'en';
@@ -261,18 +264,18 @@ function setLanguage(lang) {
     currentLang = lang;
     localStorage.setItem('language', lang);
 
-    
+
     const langToggleBtn = document.getElementById('langToggle');
     if (langToggleBtn) {
         langToggleBtn.innerText = lang === 'en' ? 'EN' : 'ने';
 
-        
+
         if (typeof gsap !== 'undefined') {
             gsap.fromTo(langToggleBtn, { scale: 0.8 }, { scale: 1, duration: 0.3, ease: 'back.out(1.5)' });
         }
     }
 
-    
+
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         const translation = translations[lang][key];
@@ -306,11 +309,11 @@ const categorizeBtn = document.getElementById('categorizeBtn');
 
 
 document.addEventListener('DOMContentLoaded', async () => {
-    
+
     const { data: { session } } = await supabase.auth.getSession();
     handleAuthChange(session);
 
-    
+
     supabase.auth.onAuthStateChange((event, session) => {
         handleAuthChange(session);
         if (event === 'SIGNED_IN') {
@@ -321,20 +324,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    
+
     setupLocationSelects('postProvince', 'postDistrict');
     setupLocationSelects('filterProvince', 'filterDistrict');
 
-    
+
     setupEventListeners();
 
-    
+
     fetchFeed();
 
-    
+
+    setupMediaPreview();
+
+
     setLanguage(currentLang);
 
-    
+
     let lastScrollY = window.scrollY;
     const navbar = document.querySelector('.navbar');
     const scrollTopBtn = document.getElementById('scrollToTopBtn');
@@ -347,15 +353,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (window.scrollY > lastScrollY && window.scrollY > 80) {
-            
+
             navbar.classList.add('hidden-nav');
         } else {
-            
+
             navbar.classList.remove('hidden-nav');
         }
         lastScrollY = window.scrollY;
 
-        
+
         if (scrollTopBtn) {
             if (window.scrollY > 300) {
                 scrollTopBtn.classList.add('show');
@@ -379,11 +385,11 @@ function handleAuthChange(session) {
         isAdmin = currentUser.email === ADMIN_EMAIL;
         loginBtn.classList.add('hidden');
         userProfile.classList.remove('hidden');
-        
+
         const avatarUrl = currentUser.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.user_metadata?.full_name || currentUser.email.split('@')[0])}&background=003893&color=fff`;
         userAvatar.src = avatarUrl;
 
-        
+
         if (!authModal.classList.contains('hidden')) {
             closeModal('authModal');
         }
@@ -397,7 +403,7 @@ function handleAuthChange(session) {
 
 
 function setupEventListeners() {
-    
+
     const langToggleBtn = document.getElementById('langToggle');
     if (langToggleBtn) {
         langToggleBtn.addEventListener('click', () => {
@@ -406,7 +412,7 @@ function setupEventListeners() {
         });
     }
 
-    
+
     loginBtn.addEventListener('click', () => openModal('authModal'));
     postBtn.addEventListener('click', () => {
         openModal('postModal');
@@ -418,8 +424,8 @@ function setupEventListeners() {
                     turnstileWidgetId = turnstile.render('#turnstile-container', {
                         sitekey: '0x4AAAAAACnnK3PbbygHiFnx',
                         theme: 'light',
-                        callback: function() { btn.disabled = false; },
-                        'expired-callback': function() { btn.disabled = true; }
+                        callback: function () { btn.disabled = false; },
+                        'expired-callback': function () { btn.disabled = true; }
                     });
                 } else {
                     turnstile.reset(turnstileWidgetId);
@@ -440,7 +446,7 @@ function setupEventListeners() {
     }
     categorizeBtn.addEventListener('click', () => openModal('categorizeModal'));
 
-    
+
     document.querySelectorAll('.close-btn, .secondary-btn[data-modal]').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const modalId = e.currentTarget.dataset.modal;
@@ -456,7 +462,7 @@ function setupEventListeners() {
         });
     }
 
-    
+
     document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
         backdrop.addEventListener('click', (e) => {
             if (e.target === backdrop) {
@@ -465,7 +471,7 @@ function setupEventListeners() {
         });
     });
 
-    
+
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.options-menu')) {
             document.querySelectorAll('.options-dropdown.show').forEach(dropdown => {
@@ -474,12 +480,12 @@ function setupEventListeners() {
         }
     });
 
-    
+
     logoutBtn.addEventListener('click', async () => {
         await supabase.auth.signOut();
     });
 
-    
+
     filterProblemBtn.addEventListener('click', () => {
         currentFilterType = 'problem';
         filterProblemBtn.classList.add('active');
@@ -494,7 +500,7 @@ function setupEventListeners() {
         fetchFeed();
     });
 
-    
+
     document.getElementById('authForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('authEmail').value;
@@ -509,11 +515,11 @@ function setupEventListeners() {
         msgEl.textContent = 'Authenticating...';
         errEl.textContent = '';
 
-        
+
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
             if (error.message.includes('Invalid login credentials')) {
-                
+
                 const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                     email, password,
                     options: { data: { full_name: email.split('@')[0] } }
@@ -555,16 +561,49 @@ function setupEventListeners() {
         }
     });
 
-    
+
     document.getElementById('googleLoginBtn').addEventListener('click', async () => {
         await supabase.auth.signInWithOAuth({ provider: 'google' });
     });
 
-    
+
+    // --- External Cloud Link Toggle ---
+    const toggleLinkBtn = document.getElementById('toggleLinkBtn');
+    if (toggleLinkBtn) {
+        toggleLinkBtn.addEventListener('click', () => {
+            document.getElementById('modalExternalLinkInput').value = tempExternalLink || '';
+            document.getElementById('modalLinkPublicInput').checked = tempIsLinkPublic;
+            openModal('externalLinkModal');
+        });
+    }
+
+    // --- External Link Modal Form Submit ---
+    document.getElementById('externalLinkForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const urlInput = document.getElementById('modalExternalLinkInput').value.trim();
+        const isPublic = document.getElementById('modalLinkPublicInput').checked;
+
+        tempExternalLink = urlInput || null;
+        tempIsLinkPublic = isPublic;
+
+        closeModal('externalLinkModal');
+
+        if (tempExternalLink) {
+            const btnText = document.getElementById('toggleLinkBtnText');
+            if (btnText) btnText.textContent = 'Link Attached ✅';
+            if (toggleLinkBtn) toggleLinkBtn.classList.add('attached');
+        } else {
+            const btnText = document.getElementById('toggleLinkBtnText');
+            if (btnText) btnText.textContent = 'Add Link';
+            if (toggleLinkBtn) toggleLinkBtn.classList.remove('attached');
+        }
+    });
+
+    // --- Form Submissions ---
     document.getElementById('postForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        
+
         const turnstileResponse = typeof turnstile !== 'undefined' && turnstileWidgetId !== null ? turnstile.getResponse(turnstileWidgetId) : null;
         if (!turnstileResponse) {
             alert('Please complete the security check to post.');
@@ -581,8 +620,10 @@ function setupEventListeners() {
         const district = document.getElementById('postDistrict').value;
         const content = document.getElementById('postContent').value;
         const isAnonymous = document.getElementById('postAnonymous').checked;
+        const externalLink = tempExternalLink;
+        const isLinkPublic = tempIsLinkPublic;
 
-        
+
         if (!currentUser) {
             if (isAnonymous) {
                 const { data, error } = await supabase.auth.signInAnonymously();
@@ -602,7 +643,7 @@ function setupEventListeners() {
             }
         }
 
-        
+
         const isVerified = currentUser.app_metadata.provider !== 'anonymous';
         const { data: canPost, error: rpcError } = await supabase.rpc('check_daily_post_limit', {
             p_user_id: currentUser.id,
@@ -611,7 +652,7 @@ function setupEventListeners() {
         });
 
         if (rpcError) {
-            
+
         } else if (!canPost) {
             const errorKey = isVerified ? 'rateLimitErrorVerified' : 'rateLimitErrorGuest';
             const modalBody = document.querySelector('#rateLimitModal p');
@@ -625,15 +666,59 @@ function setupEventListeners() {
             return;
         }
 
-        const { error } = await supabase.from('posts').insert([{
-            user_id: currentUser.id,
-            device_id: deviceId,
-            type,
-            province,
-            district,
-            content,
-            is_anonymous: isAnonymous
-        }]);
+        // --- Media Upload ---
+        const mediaInput = document.getElementById('media-upload');
+        const mediaFiles = (mediaInput?._getSelectedFiles?.() || []);
+        let mediaLinks = [];
+
+        if (mediaFiles.length > 0) {
+            // Bulletproof Auth Check: absolutely NO uploads unless logged in via real provider
+            const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+            const session = sessionData?.session;
+            const validProvider = session?.user?.app_metadata?.provider;
+
+            if (sessionErr || !session || validProvider === 'anonymous' || !validProvider) {
+                // Clear selected files so they don't linger
+                if (mediaInput?._clearSelectedFiles) mediaInput._clearSelectedFiles();
+                // Show login modal
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                closeModal('postModal');
+                openModal('authModal');
+                if (translations[currentLang] && translations[currentLang].loginToUpload) {
+                    alert(translations[currentLang].loginToUpload);
+                } else {
+                    alert("You must be signed in with a real account to upload media.");
+                }
+                return;
+            }
+
+            submitBtn.textContent = 'Uploading...';
+            try {
+                mediaLinks = await uploadMediaFiles(mediaFiles, currentUser.id);
+            } catch (uploadErr) {
+                console.error('Upload failed:', uploadErr);
+            }
+            submitBtn.textContent = 'Posting...';
+        }
+
+        const { data, error } = await supabase.functions.invoke('submit-gunaso', {
+            body: {
+                turnstileToken: turnstileResponse,
+                postPayload: {
+                    user_id: currentUser.id,
+                    device_id: deviceId,
+                    type,
+                    province,
+                    district,
+                    content,
+                    is_anonymous: isAnonymous,
+                    media_links: mediaLinks,
+                    external_link: externalLink,
+                    is_link_public: isLinkPublic
+                }
+            }
+        });
 
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
@@ -642,13 +727,25 @@ function setupEventListeners() {
             alert('Error posting: ' + error.message);
         } else {
             document.getElementById('postForm').reset();
-            
+            // Clear media preview
+            if (mediaInput?._clearSelectedFiles) mediaInput._clearSelectedFiles();
+
+            // Reset external link toggle
+            tempExternalLink = null;
+            tempIsLinkPublic = true;
+            document.getElementById('externalLinkForm').reset();
+            if (toggleLinkBtn) {
+                toggleLinkBtn.classList.remove('attached');
+                const btnText = document.getElementById('toggleLinkBtnText');
+                if (btnText) btnText.textContent = 'Add Link';
+            }
+
             if (typeof turnstile !== 'undefined' && turnstileWidgetId !== null) {
                 turnstile.reset(turnstileWidgetId);
             }
             closeModal('postModal');
 
-            
+
             if (currentFilterType !== type) {
                 currentFilterType = type;
                 if (type === 'problem') {
@@ -659,13 +756,14 @@ function setupEventListeners() {
                     filterSuggestionBtn.classList.add('active');
                 }
             }
-            
-            showToast(currentLang === 'en' ? 'Gunaso posted successfully!' : 'à¤—à¥ à¤¨à¤¾à¤¸à¥‹ à¤¸à¤«à¤²à¤¤à¤¾à¤ªà¥‚à¤°à¥ à¤µà¤• à¤ªà¥‹à¤¸à¥ à¤Ÿ à¤—à¤°à¤¿à¤¯à¥‹!');
+
+            showToast(currentLang === 'en' ? 'Gunaso posted successfully!' : 'गुनासो सफलतापूर्वक पोस्ट गरियो!');
             fetchFeed();
         }
     });
 
-    
+
+
     document.getElementById('editForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -697,7 +795,7 @@ function setupEventListeners() {
         }
     });
 
-    
+
     document.getElementById('filterForm').addEventListener('submit', (e) => {
         e.preventDefault();
         filterProvince = document.getElementById('filterProvince').value;
@@ -706,7 +804,7 @@ function setupEventListeners() {
         fetchFeed();
     });
 
-    
+
     document.getElementById('clearFiltersBtn').addEventListener('click', () => {
         document.getElementById('filterForm').reset();
         document.getElementById('filterDistrict').disabled = true;
@@ -742,7 +840,7 @@ function setupLocationSelects(provinceId, districtId) {
         });
         distSelect.disabled = false;
 
-        
+
         if (provinceId === 'filterProvince') {
             distSelect.innerHTML = '<option value="">All Districts in ' + prov + '</option>' + distSelect.innerHTML;
             distSelect.value = "";
@@ -757,10 +855,10 @@ function openModal(modalId) {
 
     modal.classList.remove('hidden');
 
-    
+
     gsap.to(modal, { opacity: 1, duration: 0.3, ease: "power2.out", autoAlpha: 1 });
 
-    
+
     gsap.fromTo(modalContent,
         { scale: 0.9, y: 30, opacity: 0 },
         { scale: 1, y: 0, opacity: 1, duration: 0.4, ease: "back.out(1.2)", delay: 0.05 }
@@ -771,12 +869,12 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     const modalContent = modal.querySelector('.modal');
 
-    
+
     gsap.to(modalContent, {
         scale: 0.95, y: -20, opacity: 0, duration: 0.2, ease: "power2.in"
     });
 
-    
+
     gsap.to(modal, {
         opacity: 0,
         duration: 0.3,
@@ -784,7 +882,7 @@ function closeModal(modalId) {
         ease: "power2.in",
         onComplete: () => {
             modal.classList.add('hidden');
-            
+
             gsap.set(modalContent, { clearProps: "all" });
             gsap.set(modal, { clearProps: "all" });
         }
@@ -808,6 +906,135 @@ async function fetchFeed() {
     }
 
     renderFeed(data);
+}
+
+
+// ===== MEDIA UPLOAD: Preview =====
+function setupMediaPreview() {
+    const input = document.getElementById('media-upload');
+    const preview = document.getElementById('media-preview');
+    if (!input || !preview) return;
+
+    // We keep our own FileList-like array since FileList is read-only
+    let selectedFiles = [];
+
+    input.addEventListener('change', () => {
+        // Append new files (avoid duplicates by name)
+        Array.from(input.files).forEach(file => {
+            if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                selectedFiles.push(file);
+            }
+        });
+        // Reset the input so the same file can be re-added if removed
+        input.value = '';
+        renderPreview();
+    });
+
+    function renderPreview() {
+        preview.innerHTML = '';
+        selectedFiles.forEach((file, idx) => {
+            const item = document.createElement('div');
+            item.className = 'preview-item';
+
+            if (file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.alt = file.name;
+                item.appendChild(img);
+            } else {
+                const inner = document.createElement('div');
+                inner.className = 'preview-item-non-image';
+                // Icon: audio or video
+                const iconSvg = file.type.startsWith('audio/')
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>`
+                    : `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>`;
+                inner.innerHTML = iconSvg;
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = file.name;
+                inner.appendChild(nameSpan);
+                item.appendChild(inner);
+            }
+
+            // Remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'preview-item-remove';
+            removeBtn.innerHTML = '&times;';
+            removeBtn.title = 'Remove';
+            removeBtn.type = 'button';
+            removeBtn.addEventListener('click', () => {
+                selectedFiles.splice(idx, 1);
+                renderPreview();
+            });
+            item.appendChild(removeBtn);
+
+            // Animate in
+            item.style.opacity = '0';
+            item.style.transform = 'scale(0.85)';
+            preview.appendChild(item);
+            gsap.to(item, { opacity: 1, scale: 1, duration: 0.3, ease: 'back.out(1.4)', delay: idx * 0.05 });
+        });
+    }
+
+    // Expose selectedFiles to be read during form submit
+    input._getSelectedFiles = () => selectedFiles;
+    input._clearSelectedFiles = () => { selectedFiles = []; renderPreview(); };
+}
+
+
+// ===== MEDIA UPLOAD: Upload to Supabase Storage =====
+async function uploadMediaFiles(files, userId) {
+    if (!files || files.length === 0) return [];
+
+    const overlay = document.getElementById('upload-progress-overlay');
+    const bar = document.getElementById('progress-bar-fill');
+
+    // Show overlay
+    overlay.classList.add('active');
+    gsap.fromTo(overlay, { opacity: 0 }, { opacity: 1, duration: 0.3 });
+
+    // Animate bar 0 → 85% while uploading (last 15% filled on completion)
+    gsap.to(bar, { width: '85%', duration: files.length * 1.2, ease: 'power1.inOut' });
+
+    const publicUrls = [];
+
+    for (const file of files) {
+        const ext = file.name.split('.').pop();
+        const uniqueName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('gunaso-media')
+            .upload(uniqueName, file, { cacheControl: '3600', upsert: false });
+
+        if (uploadError) {
+            console.error('Media upload error:', uploadError.message);
+            continue;
+        }
+
+        const { data: urlData } = supabase.storage
+            .from('gunaso-media')
+            .getPublicUrl(uploadData.path);
+
+        if (urlData?.publicUrl) {
+            publicUrls.push(urlData.publicUrl);
+        }
+    }
+
+    // Fill bar to 100% then hide
+    gsap.to(bar, {
+        width: '100%', duration: 0.4, ease: 'power2.out',
+        onComplete: () => {
+            gsap.to(overlay, {
+                opacity: 0, duration: 0.4, delay: 0.3,
+                onComplete: () => {
+                    overlay.classList.remove('active');
+                    // Reset bar for next time
+                    gsap.set(bar, { width: '0%' });
+                }
+            });
+        }
+    });
+
+    return publicUrls;
 }
 
 function renderFeed(posts) {
@@ -834,7 +1061,7 @@ function renderFeed(posts) {
         const isOwner = currentUser && currentUser.id === post.user_id;
         const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
 
-        
+
         let dropdownItems = '';
         if (isOwner && isWithin12Hours) {
             dropdownItems += `
@@ -854,7 +1081,7 @@ function renderFeed(posts) {
             `;
         }
 
-        
+
         if (isAdmin) {
             const pinIcon = post.is_pinned ?
                 '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>' :
@@ -872,7 +1099,7 @@ function renderFeed(posts) {
             `;
         }
 
-        
+
         dropdownItems += `
             <button class="dropdown-item flag-btn" data-id="${post.id}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
@@ -890,6 +1117,32 @@ function renderFeed(posts) {
                 </div>
             </div>
         `;
+
+        let externalLinkHtml = '';
+        if (post.external_link) {
+            if (post.is_link_public || isAdmin) {
+                const badgeStyle = !post.is_link_public && isAdmin ? 'border: 1px solid #ef4444; color: #ef4444; background: #fef2f2;' : 'border: 1px solid var(--border);';
+                const privateIcon = !post.is_link_public && isAdmin ? '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>' : '';
+                externalLinkHtml = `
+                    <div class="external-link-preview" style="margin-top: 0.8rem; margin-bottom: 0.5rem;">
+                        <a href="${post.external_link}" target="_blank" rel="noopener noreferrer" class="outline-btn" style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; padding: 0.4rem 0.8rem; border-radius: 6px; text-decoration: none; max-width: 100%; ${badgeStyle}">
+                            ${privateIcon}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${post.external_link.replace(/^https?:\/\//, '')}</span>
+                        </a>
+                    </div>
+                `;
+            } else {
+                externalLinkHtml = `
+                    <div class="external-link-preview" style="margin-top: 0.8rem; margin-bottom: 0.5rem;">
+                        <div style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; padding: 0.4rem 0.8rem; border-radius: 6px; background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2; max-width: 100%;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            <span data-i18n="privateEvidence" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Private Evidence Attached</span>
+                        </div>
+                    </div>
+                `;
+            }
+        }
 
         const cardHTML = `
             <div class="card ${post.is_pinned ? 'pinned' : ''}" id="post-${post.id}">
@@ -918,6 +1171,21 @@ function renderFeed(posts) {
                     </div>
                 </div>
                 <div class="card-content">${escapeHTML(post.content)}</div>
+                ${externalLinkHtml}
+                ${(post.media_links && post.media_links.length > 0) ? `
+                <div class="card-media-gallery ${post.media_links.length === 1 && /\.(jpe?g|png|gif|webp|avif)$/i.test(post.media_links[0]) ? 'single-media' : ''}">
+                    ${post.media_links.map(url => {
+            const lower = url.toLowerCase().split('?')[0];
+            if (/\.(jpe?g|png|gif|webp|avif|svg)$/.test(lower)) {
+                return `<img class="card-media-img post-media-img" src="${url}" loading="lazy" alt="Attached image">`;
+            } else if (/\.(mp3|wav|ogg|m4a|aac|flac)$/.test(lower)) {
+                return `<audio class="card-media-audio post-media-audio" controls src="${url}" preload="none"></audio>`;
+            } else if (/\.(mp4|webm|mov|avi|mkv)$/.test(lower)) {
+                return `<video class="card-media-video post-media-video" controls src="${url}" preload="metadata"></video>`;
+            }
+            return `<a href="${url}" target="_blank" rel="noopener" style="grid-column:1/-1; font-size:0.8rem; color:var(--secondary);">📎 Attached file</a>`;
+        }).join('')}
+                </div>` : ''}
                 <div class="card-footer">
                     <div class="card-votes">
                         <button class="vote-btn ${!currentUser || currentUser.is_anonymous ? 'dimmed' : ''}" data-id="${post.id}" data-type="agree" data-current-vote="${post.user_vote || 'none'}" style="color: ${post.user_vote === 'agree' ? 'var(--secondary)' : 'var(--text-light)'};">
@@ -941,24 +1209,42 @@ function renderFeed(posts) {
         feedContainer.insertAdjacentHTML('beforeend', cardHTML);
     });
 
-    
+    // Attach click listeners to cards for the Expanded Post Modal
+    document.querySelectorAll('.card').forEach((card, i) => {
+        card.addEventListener('click', (e) => {
+            // Ignore clicks on interactive elements inside the card
+            if (e.target.closest('.card-footer') || e.target.closest('.options-dropdown-container') || ['AUDIO', 'VIDEO', 'A', 'BUTTON', 'INPUT'].includes(e.target.tagName)) {
+                return;
+            }
+            if (window.openExpandedPost) window.openExpandedPost(posts[i]);
+        });
+    });
+
+
     gsap.to('.card', {
         y: 0,
         opacity: 1,
         duration: 0.5,
         stagger: 0.1,
         ease: "power2.out",
-        clearProps: "transform" 
+        clearProps: "transform"
     });
 
-    
+    // Stagger media elements inside cards
+    gsap.fromTo(
+        '.card-media-gallery .card-media-img, .card-media-gallery .card-media-audio, .card-media-gallery .card-media-video',
+        { opacity: 0, y: 12, scale: 0.97 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.4, stagger: 0.07, ease: 'power2.out', delay: 0.3 }
+    );
+
+
     document.querySelectorAll('.vote-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const btnEl = e.currentTarget;
             let finalUser = currentUser;
 
             if (!finalUser || finalUser.is_anonymous) {
-                
+
                 closeModal('commentsModal');
                 openModal('voteAuthModal');
                 return;
@@ -968,14 +1254,14 @@ function renderFeed(posts) {
             const voteType = btnEl.dataset.type;
             const currentVote = btnEl.dataset.currentVote;
 
-            
+
             gsap.fromTo(btnEl,
                 { scale: 0.8 },
                 { scale: 1, duration: 0.3, ease: "back.out(1.5)" }
             );
 
             if (voteType === currentVote) {
-                
+
                 const { error: deleteError } = await supabase
                     .from('post_votes')
                     .delete()
@@ -984,20 +1270,20 @@ function renderFeed(posts) {
                 if (deleteError) {
                     alert('Failed to remove vote: ' + deleteError.message);
                 } else {
-                    
+
                     const countEl = btnEl.querySelector('.vote-count');
                     countEl.textContent = parseInt(countEl.textContent) - 1;
                     btnEl.dataset.currentVote = 'none';
                     btnEl.style.color = 'var(--text-light)';
                     const svg = btnEl.querySelector('svg');
                     if (svg) svg.setAttribute('fill', 'none');
-                    
-                    
+
+
                     const siblingBtn = btnEl.parentElement.querySelector(`.vote-btn[data-type="${voteType === 'agree' ? 'disagree' : 'agree'}"]`);
                     if (siblingBtn) siblingBtn.dataset.currentVote = 'none';
                 }
             } else {
-                
+
                 const { error: upsertError } = await supabase.from('post_votes').upsert({
                     post_id: postId,
                     user_id: finalUser.id,
@@ -1007,10 +1293,10 @@ function renderFeed(posts) {
                 if (upsertError) {
                     alert('Failed to register vote: ' + upsertError.message);
                 } else {
-                    
+
                     const siblingBtn = btnEl.parentElement.querySelector(`.vote-btn[data-type="${voteType === 'agree' ? 'disagree' : 'agree'}"]`);
-                    
-                    
+
+
                     if (currentVote !== 'none' && currentVote !== voteType) {
                         const siblingCountEl = siblingBtn.querySelector('.vote-count');
                         siblingCountEl.textContent = Math.max(0, parseInt(siblingCountEl.textContent) - 1);
@@ -1019,15 +1305,15 @@ function renderFeed(posts) {
                         if (siblingSvg) siblingSvg.setAttribute('fill', 'none');
                     }
 
-                    
+
                     const countEl = btnEl.querySelector('.vote-count');
                     countEl.textContent = parseInt(countEl.textContent) + 1;
                     btnEl.dataset.currentVote = voteType;
                     btnEl.style.color = voteType === 'agree' ? 'var(--secondary)' : 'var(--primary)';
                     const svg = btnEl.querySelector('svg');
                     if (svg) svg.setAttribute('fill', voteType === 'agree' ? 'var(--secondary)' : 'var(--primary)');
-                    
-                    
+
+
                     btnEl.dataset.currentVote = voteType;
                     if (siblingBtn) siblingBtn.dataset.currentVote = voteType;
                 }
@@ -1035,7 +1321,7 @@ function renderFeed(posts) {
         });
     });
 
-    
+
     document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const currentBtn = e.currentTarget;
@@ -1049,7 +1335,7 @@ function renderFeed(posts) {
             document.getElementById('editPostAnonymous').checked = isAnon;
             document.querySelector(`input[name="editPostType"][value="${type}"]`).checked = true;
 
-            
+
             document.getElementById(`dropdown-${id}`).classList.remove('show');
             openModal('editModal');
         });
@@ -1074,7 +1360,7 @@ function renderFeed(posts) {
                     document.getElementById('post-' + id).remove();
                 }
             } else {
-                
+
                 document.getElementById(`dropdown-${id}`).classList.remove('show');
             }
         });
@@ -1086,7 +1372,7 @@ function renderFeed(posts) {
             const id = currentBtn.dataset.id;
             const isCurrentlyPinned = currentBtn.dataset.pinned === 'true';
 
-            
+
             document.getElementById(`dropdown-${id}`).classList.remove('show');
 
             togglePinPost(id, isCurrentlyPinned);
@@ -1098,7 +1384,7 @@ function renderFeed(posts) {
             const currentBtn = e.currentTarget;
             const id = currentBtn.dataset.id;
 
-            
+
             document.getElementById(`dropdown-${id}`).classList.remove('show');
 
             if (!currentUser || currentUser.is_anonymous) {
@@ -1107,7 +1393,7 @@ function renderFeed(posts) {
                 return;
             }
 
-            
+
             document.getElementById('reportPostId').value = id;
             document.getElementById('reportReason').value = '';
             openModal('reportModal');
@@ -1119,8 +1405,8 @@ function renderFeed(posts) {
                         turnstileReportWidgetId = turnstile.render('#turnstile-container-report', {
                             sitekey: '0x4AAAAAACnnK3PbbygHiFnx',
                             theme: 'light',
-                            callback: function() { btn.disabled = false; },
-                            'expired-callback': function() { btn.disabled = true; }
+                            callback: function () { btn.disabled = false; },
+                            'expired-callback': function () { btn.disabled = true; }
                         });
                     } else {
                         turnstile.reset(turnstileReportWidgetId);
@@ -1134,7 +1420,7 @@ function renderFeed(posts) {
         });
     });
 
-    
+
     document.querySelectorAll('.comment-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const id = e.currentTarget.dataset.id;
@@ -1149,8 +1435,8 @@ function renderFeed(posts) {
                         turnstileCommentWidgetId = turnstile.render('#turnstile-container-comment', {
                             sitekey: '0x4AAAAAACnnK3PbbygHiFnx',
                             theme: 'light',
-                            callback: function() { btn.disabled = false; },
-                            'expired-callback': function() { btn.disabled = true; }
+                            callback: function () { btn.disabled = false; },
+                            'expired-callback': function () { btn.disabled = true; }
                         });
                     } else {
                         turnstile.reset(turnstileCommentWidgetId);
@@ -1193,13 +1479,13 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
     submitBtn.disabled = false;
 
     if (error) {
-        if (error.code === '23505') { 
+        if (error.code === '23505') {
             alert(currentLang === 'en' ? "You have already reported this post." : "à¤¤à¤ªà¤¾à¤ˆà¤‚à¤²à¥‡ à¤¯à¥‹ à¤ªà¥‹à¤¸à¥à¤Ÿ à¤ªà¤¹à¤¿à¤²à¥‡ à¤¨à¥ˆ à¤°à¤¿à¤ªà¥‹à¤°à¥à¤Ÿ à¤—à¤°à¤¿à¤¸à¤•à¥à¤¨à¥à¤­à¤à¤•à¥‹ à¤›à¥¤");
         } else {
             alert("Failed to run report: " + error.message);
         }
     } else {
-        
+
         document.getElementById('reportInitialState').classList.add('hidden');
         document.getElementById('reportSuccessState').classList.remove('hidden');
 
@@ -1234,7 +1520,7 @@ function escapeHTML(str) {
 function toggleDropdown(postId) {
     const dropdown = document.getElementById(`dropdown-${postId}`);
     if (dropdown) {
-        
+
         document.querySelectorAll('.options-dropdown.show').forEach(d => {
             if (d.id !== `dropdown-${postId}`) d.classList.remove('show');
         });
@@ -1253,7 +1539,7 @@ async function togglePinPost(postId, currentState) {
     if (error) {
         alert('Error pinning post: ' + error.message);
     } else {
-        
+
         fetchFeed();
     }
 }
@@ -1289,7 +1575,7 @@ async function fetchComments(postId) {
         if (isAdminComment) {
             authorName = translations[currentLang].adminAction || 'Hamro Gunaso Admin';
         }
-        
+
         if (comment.is_anonymous) {
             authorName = translations[currentLang].anonCitizen;
             avatarUrl = `https://ui-avatars.com/api/?name=A&background=666&color=fff`;
@@ -1308,9 +1594,9 @@ async function fetchComments(postId) {
                 </button>
             `;
         }
-        
+
         if (isAdmin) {
-             commentDropdownItems += `
+            commentDropdownItems += `
                  <button class="dropdown-item copy-id-btn" data-userid="${comment.user_id}" data-elementid="comment-${comment.id}">
                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                      <span>Copy User ID</span>
@@ -1358,7 +1644,7 @@ async function fetchComments(postId) {
         listEl.insertAdjacentHTML('beforeend', commentHTML);
     });
 
-    
+
     listEl.querySelectorAll('.delete-comment-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const currentBtn = e.currentTarget;
@@ -1430,7 +1716,7 @@ document.getElementById('commentForm').addEventListener('submit', async (e) => {
         alert('Error posting comment: ' + error.message);
     } else {
         document.getElementById('commentContent').value = '';
-        
+
         if (typeof turnstile !== 'undefined' && turnstileCommentWidgetId !== null) {
             turnstile.reset(turnstileCommentWidgetId);
         }
@@ -1485,20 +1771,316 @@ window.toggleDropdown = toggleDropdown;
 window.closeModal = closeModal;
 window.openModal = openModal;
 
+// --- Expanded Post Modal Logic ---
+const expandedModal = document.getElementById('expanded-post-modal');
+const expandedOverlay = document.getElementById('expandedPostOverlay');
+let currentExpandedPostId = null;
+
+window.openExpandedPost = function (post) {
+    currentExpandedPostId = post.id;
+
+    // 1. Populate Author
+    const isAnonymous = post.is_anonymous;
+    const authorText = isAnonymous ? (translations[currentLang]?.anonCitizen || 'Anonymous Citizen') : (post.author_full_name || (translations[currentLang]?.anonUser || 'User'));
+    const authorAvatar = isAnonymous ? `https://ui-avatars.com/api/?name=${encodeURIComponent(authorText)}&background=666666&color=ffffff` : (post.author_avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorText)}&background=003893&color=ffffff`);
+
+    document.getElementById('expandedPostAuthor').innerHTML = `<img src="${authorAvatar}" alt="avatar"> <strong>${authorText}</strong>`;
+
+    // 2. Populate Text
+    let expandedExternalLinkHtml = '';
+    const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+    if (post.external_link) {
+        if (post.is_link_public || isAdmin) {
+            const badgeStyle = !post.is_link_public && isAdmin ? 'border: 1px solid #ef4444; color: #ef4444; background: #fef2f2;' : 'border: 1px solid var(--border);';
+            const privateIcon = !post.is_link_public && isAdmin ? '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>' : '';
+            expandedExternalLinkHtml = `
+                <div class="external-link-preview" style="margin-top: 1rem; margin-bottom: 0.5rem;">
+                    <a href="${post.external_link}" target="_blank" rel="noopener noreferrer" class="outline-btn" style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; width: 100%; justify-content: center; ${badgeStyle}">
+                        ${privateIcon}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${post.external_link.replace(/^https?:\/\//, '')}</span>
+                    </a>
+                </div>
+            `;
+        } else {
+            expandedExternalLinkHtml = `
+                <div class="external-link-preview" style="margin-top: 1rem; margin-bottom: 0.5rem;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: 6px; background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2; width: 100%; justify-content: center;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        <span data-i18n="privateEvidence" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Private Evidence Attached</span>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    document.getElementById('expandedPostText').innerHTML = escapeHTML(post.content) + expandedExternalLinkHtml;
+
+    // 3. Populate Stats
+    const agreeLabel = translations[currentLang]?.agreeText || 'Agree';
+    const disagreeLabel = translations[currentLang]?.disagreeText || 'Disagree';
+    const commentLabel = translations[currentLang]?.commentAction || 'Comments';
+
+    document.getElementById('expandedPostStats').innerHTML = `
+        <button class="vote-btn ${!currentUser || currentUser.is_anonymous ? 'dimmed' : ''}" id="modal-agree-btn" data-id="${post.id}" data-type="agree" data-current-vote="${post.user_vote || 'none'}" style="color: ${post.user_vote === 'agree' ? 'var(--primary)' : 'var(--text-light)'};">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="${post.user_vote === 'agree' ? 'var(--primary)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+            <span class="vote-text-wrapper"><span class="vote-count" id="modal-agree-count">${post.agree_count || 0}</span> <span data-i18n="agreeText">${agreeLabel}</span></span>
+        </button>
+        <button class="vote-btn ${!currentUser || currentUser.is_anonymous ? 'dimmed' : ''}" id="modal-disagree-btn" data-id="${post.id}" data-type="disagree" data-current-vote="${post.user_vote || 'none'}" style="color: ${post.user_vote === 'disagree' ? 'var(--primary)' : 'var(--text-light)'};">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="${post.user_vote === 'disagree' ? 'var(--primary)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
+            <span class="vote-text-wrapper"><span class="vote-count" id="modal-disagree-count">${post.disagree_count || 0}</span> <span data-i18n="disagreeText">${disagreeLabel}</span></span>
+        </button>
+        <div class="stat-item" style="color:var(--text-light); pointer-events:none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+            <span class="vote-text-wrapper"><span class="vote-count" id="modal-comment-count">${post.comment_count || 0}</span> <span data-i18n="commentAction">${commentLabel}</span></span>
+        </div>
+    `;
+
+    // 3.5 Bind Vote Listeners dynamically for the modal
+    setTimeout(() => {
+        ['modal-agree-btn', 'modal-disagree-btn'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.addEventListener('click', async (e) => {
+                    const btnEl = e.currentTarget;
+                    if (!currentUser || currentUser.is_anonymous) {
+                        closeExpandedPost();
+                        openModal('voteAuthModal');
+                        return;
+                    }
+                    const postId = btnEl.dataset.id;
+                    const voteType = btnEl.dataset.type;
+                    const currentVote = btnEl.dataset.currentVote;
+
+                    gsap.fromTo(btnEl, { scale: 0.8 }, { scale: 1, duration: 0.3, ease: 'back.out(1.5)' });
+
+                    if (voteType === currentVote) {
+                        const { error } = await supabase.from('post_votes').delete().match({ post_id: postId, user_id: currentUser.id });
+                        if (!error) {
+                            btnEl.dataset.currentVote = 'none';
+                            btnEl.style.color = 'var(--text-light)';
+                            btnEl.querySelector('svg').setAttribute('fill', 'none');
+                            const countSpan = btnEl.querySelector('.vote-count');
+                            countSpan.textContent = Math.max(0, parseInt(countSpan.textContent) - 1);
+                        }
+                    } else {
+                        const { error } = await supabase.from('post_votes').upsert({ post_id: postId, user_id: currentUser.id, vote_type: voteType });
+                        if (!error) {
+                            const otherBtnId = voteType === 'agree' ? 'modal-disagree-btn' : 'modal-agree-btn';
+                            const otherBtn = document.getElementById(otherBtnId);
+                            if (currentVote !== 'none' && otherBtn) {
+                                otherBtn.dataset.currentVote = 'none';
+                                otherBtn.style.color = 'var(--text-light)';
+                                otherBtn.querySelector('svg').setAttribute('fill', 'none');
+                                const otherCountSpan = otherBtn.querySelector('.vote-count');
+                                otherCountSpan.textContent = Math.max(0, parseInt(otherCountSpan.textContent) - 1);
+                            }
+                            btnEl.dataset.currentVote = voteType;
+                            btnEl.style.color = 'var(--primary)';
+                            btnEl.querySelector('svg').setAttribute('fill', 'var(--primary)');
+                            const countSpan = btnEl.querySelector('.vote-count');
+                            countSpan.textContent = parseInt(countSpan.textContent) + 1;
+                        }
+                    }
+                });
+            }
+        });
+    }, 50);
+
+    // 4. Populate Media
+    const mediaContainer = document.getElementById('expandedPostMedia');
+    if (post.media_links && post.media_links.length > 0) {
+        mediaContainer.style.display = 'flex';
+        mediaContainer.innerHTML = post.media_links.map(url => {
+            const lower = url.toLowerCase().split('?')[0];
+            if (/\.(jpe?g|png|gif|webp|avif|svg)$/.test(lower)) {
+                return `<img src="${url}" loading="lazy" alt="Media">`;
+            } else if (/\.(mp3|wav|ogg|m4a|aac|flac)$/.test(lower)) {
+                return `<audio controls src="${url}"></audio>`;
+            } else if (/\.(mp4|webm|mov|avi|mkv)$/.test(lower)) {
+                return `<video controls src="${url}"></video>`;
+            }
+            return `<a href="${url}" target="_blank" rel="noopener" style="color:var(--secondary);">📎 Attached file</a>`;
+        }).join('');
+    } else {
+        mediaContainer.style.display = 'none';
+        mediaContainer.innerHTML = '';
+    }
+
+    // 5. Load Comments
+    const commentsContainer = document.getElementById('expandedPostComments');
+    commentsContainer.innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--text-light);">Loading comments...</div>';
+    fetchExpandedComments(post.id);
+
+    // 6. Lock body scroll
+    document.body.style.overflow = 'hidden';
+
+    // 7. GSAP Animation
+    expandedOverlay.classList.add('active');
+    expandedModal.style.visibility = 'visible';
+    expandedModal.style.pointerEvents = 'auto';
+
+    if (window.innerWidth <= 640) {
+        // Mobile slide up
+        gsap.fromTo(expandedModal,
+            { y: '100%', scale: 1, opacity: 1, left: 0, top: '5vh', x: 0, transform: 'translateY(100%)' },
+            { y: '0%', transform: 'translateY(0%)', duration: 0.4, ease: 'power3.out' }
+        );
+    } else {
+        // Desktop scale fade
+        gsap.fromTo(expandedModal,
+            { scale: 0.95, opacity: 0, top: '50%', left: '50%', x: '-50%', y: '-50%', transform: 'translate(-50%, -50%) scale(0.95)' },
+            { scale: 1, opacity: 1, transform: 'translate(-50%, -50%) scale(1)', duration: 0.4, ease: 'back.out(1.2)' }
+        );
+    }
+};
+
+window.closeExpandedPost = function () {
+    document.body.style.overflow = '';
+    expandedOverlay.classList.remove('active');
+    expandedModal.style.pointerEvents = 'none';
+
+    if (window.innerWidth <= 640) {
+        gsap.to(expandedModal, {
+            y: '100%', transform: 'translateY(100%)', duration: 0.3, ease: 'power2.in',
+            onComplete: () => { expandedModal.style.visibility = 'hidden'; }
+        });
+    } else {
+        gsap.to(expandedModal, {
+            scale: 0.95, opacity: 0, transform: 'translate(-50%, -50%) scale(0.95)', duration: 0.2, ease: 'power2.in',
+            onComplete: () => { expandedModal.style.visibility = 'hidden'; }
+        });
+    }
+    currentExpandedPostId = null;
+};
+
+if (document.getElementById('closeExpandedBtn')) {
+    document.getElementById('closeExpandedBtn').addEventListener('click', closeExpandedPost);
+}
+if (document.getElementById('expandedPostOverlay')) {
+    document.getElementById('expandedPostOverlay').addEventListener('click', closeExpandedPost);
+}
+
+// Fetch comments for expanded modal
+async function fetchExpandedComments(postId) {
+    const commentsContainer = document.getElementById('expandedPostComments');
+    const { data, error } = await supabase
+        .from('post_comments')
+        .select('*, profiles(full_name, avatar_url)')
+        .eq('post_id', postId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        commentsContainer.innerHTML = '<div style="color:var(--primary); text-align:center; padding: 1rem;">Error loading comments.</div>';
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        commentsContainer.innerHTML = '<div style="text-align:center; color: var(--text-light); margin-top: 2rem;">No comments yet. Be the first!</div>';
+        return;
+    }
+
+    commentsContainer.innerHTML = data.map(c => {
+        const authorName = c.profiles?.full_name || (translations[currentLang]?.anonUser || 'User');
+        const avatar = c.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=003893&color=ffffff`;
+        const timeStr = new Date(c.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+        return `
+            <div style="background:var(--bg); padding:1rem; border-radius:8px; border: 1px solid var(--border);">
+                <div style="display:flex; align-items:center; justify-content: space-between; margin-bottom:0.5rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <img src="${avatar}" style="width:28px; height:28px; border-radius:50%; object-fit:cover;" alt="Avatar">
+                        <strong style="font-size:0.9rem;">${authorName}</strong>
+                    </div>
+                    <span style="font-size:0.75rem; color:var(--text-light);">${timeStr}</span>
+                </div>
+                <div style="font-size:0.95rem; line-height: 1.4;">${escapeHTML(c.content)}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+if (document.getElementById('submitExpandedCommentBtn')) {
+    document.getElementById('submitExpandedCommentBtn').addEventListener('click', async () => {
+        if (!currentExpandedPostId) return;
+        const input = document.getElementById('expandedCommentInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        if (!currentUser || currentUser.app_metadata?.provider === 'anonymous') {
+            alert(translations[currentLang]?.loginRequired || "Please log in with a real account to comment.");
+            closeExpandedPost();
+            openModal('authModal');
+            return;
+        }
+
+        const btn = document.getElementById('submitExpandedCommentBtn');
+        const originalText = btn.textContent;
+        btn.textContent = '...';
+        btn.disabled = true;
+
+        const { data: newComments, error } = await supabase.from('post_comments').insert({
+            post_id: currentExpandedPostId,
+            user_id: currentUser.id,
+            content: text
+        }).select('*, profiles(full_name, avatar_url)');
+
+        btn.textContent = originalText;
+        btn.disabled = false;
+
+        if (!error && newComments && newComments.length > 0) {
+            input.value = '';
+
+            // Optimistically update comment count in modal
+            const countEl = document.getElementById('modal-comment-count');
+            if (countEl) countEl.textContent = parseInt(countEl.textContent) + 1;
+
+            // Dynamically prepend new comment
+            const commentsContainer = document.getElementById('expandedPostComments');
+            const c = newComments[0];
+            const authorName = c.profiles?.full_name || (translations[currentLang]?.anonUser || 'User');
+            const avatar = c.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=003893&color=ffffff`;
+            const timeStr = 'Just now';
+
+            const newCommentHTML = `
+                <div style="background:var(--bg); padding:1rem; border-radius:8px; border: 1px solid var(--border); animation: slideDown 0.3s ease-out;">
+                    <div style="display:flex; align-items:center; justify-content: space-between; margin-bottom:0.5rem;">
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <img src="${avatar}" style="width:28px; height:28px; border-radius:50%; object-fit:cover;" alt="Avatar">
+                            <strong style="font-size:0.9rem;">${authorName}</strong>
+                        </div>
+                        <span style="font-size:0.75rem; color:var(--text-light);">${timeStr}</span>
+                    </div>
+                    <div style="font-size:0.95rem; line-height: 1.4;">${escapeHTML(c.content)}</div>
+                </div>
+            `;
+
+            if (commentsContainer.innerHTML.includes('No comments yet')) {
+                commentsContainer.innerHTML = '';
+            }
+            commentsContainer.insertAdjacentHTML('afterbegin', newCommentHTML);
+
+        } else {
+            console.error(error);
+            alert("Error posting comment.");
+        }
+    });
+}
+
 // Global click delegation for copying User IDs from dropdowns
 document.addEventListener('click', (e) => {
     // 1. Handle Copy ID Button Click
     const copyBtn = e.target.closest('.copy-id-btn');
     if (copyBtn) {
         const userId = copyBtn.dataset.userid;
-        
+
         navigator.clipboard.writeText(userId).then(() => {
             const span = copyBtn.querySelector('span');
             if (span) {
                 const originalText = span.textContent;
                 span.textContent = 'Copied!';
                 span.style.color = 'var(--secondary)';
-                
+
                 setTimeout(() => {
                     span.textContent = originalText;
                     span.style.color = '';
@@ -1508,7 +2090,7 @@ document.addEventListener('click', (e) => {
             console.error('Failed to copy ID: ', err);
             alert('Failed to copy ID.');
         });
-        
+
         // Optional: close the dropdown menu after clicking
         const dropdown = copyBtn.closest('.options-dropdown');
         if (dropdown) {
