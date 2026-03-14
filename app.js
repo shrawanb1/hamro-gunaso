@@ -571,6 +571,10 @@ function setupEventListeners() {
     const toggleLinkBtn = document.getElementById('toggleLinkBtn');
     if (toggleLinkBtn) {
         toggleLinkBtn.addEventListener('click', () => {
+            if (!currentUser) {
+                openModal('voteAuthModal');
+                return;
+            }
             document.getElementById('modalExternalLinkInput').value = tempExternalLink || '';
             document.getElementById('modalLinkPublicInput').checked = tempIsLinkPublic;
             openModal('externalLinkModal');
@@ -605,7 +609,7 @@ function setupEventListeners() {
         mediaUploadLabel.addEventListener('click', (e) => {
             if (!currentUser) {
                 e.preventDefault(); // Stop the file input from opening
-                openModal('authModal');
+                openModal('voteAuthModal');
             }
         });
     }
