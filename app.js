@@ -605,7 +605,6 @@ function setupEventListeners() {
         mediaUploadLabel.addEventListener('click', (e) => {
             if (!currentUser) {
                 e.preventDefault(); // Stop the file input from opening
-                alert('Please sign in to attach photos, audio, or video.');
                 openModal('authModal');
             }
         });
