@@ -2113,3 +2113,13 @@ document.addEventListener('click', (e) => {
         }
     }
 });
+
+// --- Hidden Superadmin Dashboard Entry ---
+document.addEventListener('keydown', (e) => {
+    // Check for Ctrl + Shift + Y
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        window.location.href = 'hakim.html';
+    }
+});
+

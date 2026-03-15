@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hakim | Command Center</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="hakim.css">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- GSAP for smooth animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+</head>
+
+<body class="hakim-layout" style="display: none;"> <!-- Hidden until auth check -->
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">Hamro <span>Gunaso</span></div>
+            <div class="hakim-badge">HAKIM</div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="index.html" class="nav-item return-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <span>Exit Hakim</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <header class="topbar">
+            <h1>Command Center</h1>
+            <div class="admin-profile">
+                <span id="adminEmailDisplay">Superadmin</span>
+                <div class="pulse-indicator"></div>
+            </div>
+        </header>
+
+        <!-- Stats Row -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-title">Total Users</div>
+                <div class="stat-value" id="stat-users">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Total Posts</div>
+                <div class="stat-value" id="stat-posts">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Total Comments</div>
+                <div class="stat-value" id="stat-comments">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Active Private Links</div>
+                <div class="stat-value" id="stat-links">-</div>
+            </div>
+        </section>
+
+        <!-- Main Data Display -->
+        <section class="data-section">
+            <div class="data-header">
+                <h2>All Submissions</h2>
+                <div class="data-filters">
+                    <button class="outline-btn active" data-filter="all">All</button>
+                    <button class="outline-btn" data-filter="problem">Problems</button>
+                    <button class="outline-btn" data-filter="solution">Suggestions</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <!-- Data will be populated here by hakim.js -->
+                <div id="adminDataFeed" class="admin-feed-loading">
+                    Authenticating Superadmin...
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module" src="hakim.js"></script>
+</body>
+</html>
