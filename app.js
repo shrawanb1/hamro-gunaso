@@ -1186,6 +1186,14 @@ function renderFeed(posts) {
                     </div>
                 </div>
                 <div class="card-content">${escapeHTML(post.content)}</div>
+                ${post.admin_feedback ? `
+                <div class="hakim-note" style="background: linear-gradient(135deg, #fff7ed, #fffbeb); border: 1px solid #fcd34d; border-left: 4px solid #d97706; border-radius: 8px; padding: 0.85rem 1rem; margin-top: 0.75rem; display: flex; gap: 0.6rem; align-items: flex-start;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" style="flex-shrink:0; margin-top:2px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <div>
+                        <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:#a16207; font-weight:700;">Hakim's Note</span>
+                        <p style="margin:0.25rem 0 0; font-size:0.9rem; color:#78350f; line-height:1.4;">${escapeHTML(post.admin_feedback)}</p>
+                    </div>
+                </div>` : ''}
                 ${externalLinkHtml}
                 ${(post.media_links && post.media_links.length > 0) ? `
                 <div class="card-media-gallery ${post.media_links.length === 1 && /\.(jpe?g|png|gif|webp|avif)$/i.test(post.media_links[0]) ? 'single-media' : ''}">
@@ -1205,11 +1213,11 @@ function renderFeed(posts) {
                     <div class="card-votes">
                         <button class="vote-btn ${!currentUser || currentUser.is_anonymous ? 'dimmed' : ''}" data-id="${post.id}" data-type="agree" data-current-vote="${post.user_vote || 'none'}" style="color: ${post.user_vote === 'agree' ? 'var(--secondary)' : 'var(--text-light)'};">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="${post.user_vote === 'agree' ? 'var(--secondary)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
-                            <span class="vote-text-wrapper"><span class="vote-count">${post.agree_count}</span> <span data-i18n="agreeText">${translations[currentLang].agreeText}</span></span>
+                            <span class="vote-text-wrapper"><span class="vote-count">${(post.agree_count || 0) + (post.agree_offset || 0)}</span> <span data-i18n="agreeText">${translations[currentLang].agreeText}</span></span>
                         </button>
                         <button class="vote-btn ${!currentUser || currentUser.is_anonymous ? 'dimmed' : ''}" data-id="${post.id}" data-type="disagree" data-current-vote="${post.user_vote || 'none'}" style="color: ${post.user_vote === 'disagree' ? 'var(--primary)' : 'var(--text-light)'};">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="${post.user_vote === 'disagree' ? 'var(--primary)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
-                            <span class="vote-text-wrapper"><span class="vote-count">${post.disagree_count}</span> <span data-i18n="disagreeText">${translations[currentLang].disagreeText}</span></span>
+                            <span class="vote-text-wrapper"><span class="vote-count">${(post.disagree_count || 0) + (post.disagree_offset || 0)}</span> <span data-i18n="disagreeText">${translations[currentLang].disagreeText}</span></span>
                         </button>
                         <div style="flex-grow: 1;"></div>
                         <button class="comment-btn" data-id="${post.id}">

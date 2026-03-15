@@ -64,7 +64,7 @@ async function fetchAdminFeed() {
         .from('posts')
         .select(`
             *,
-            profiles (full_name, avatar_url, email)
+            profiles (full_name, avatar_url)
         `)
         .order('created_at', { ascending: false });
 
@@ -77,11 +77,11 @@ async function fetchAdminFeed() {
     renderTable();
 }
 
-// 4. Render the Data Table
+// 4. Render the Data as Accordions
 function renderTable() {
     const feedContainer = document.getElementById('adminDataFeed');
 
-    const filteredData = allPosts.filter(post => {
+    let filteredData = allPosts.filter(post => {
         if (currentFilter === 'all') return true;
         return post.type === currentFilter;
     });
@@ -91,99 +91,136 @@ function renderTable() {
         return;
     }
 
-    let tableHTML = `
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Author</th>
-                    <th>Type</th>
-                    <th style="width:35%;">Snippet</th>
-                    <th>Media/Links</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
+    // Grouping: Province -> District -> Posts
+    const grouped = {};
     filteredData.forEach(post => {
-        const dateStr = new Date(post.created_at).toLocaleString();
-        const profile = post.profiles;
-        let authorStr = 'Unknown';
-        if (profile) {
-            authorStr = `<strong>${post.is_anonymous ? 'Anon (' + profile.email + ')' : profile.full_name}</strong>`;
-        }
-
-        const typeBadgeStyle = post.type === 'problem' ? 'background:#fee2e2; color:#b91c1c;' : 'background:#f0f7ff; color:#0056b3;';
-        const typeBadge = `<span style="padding:0.25rem 0.6rem; border-radius:100px; font-size:0.75rem; font-weight:700; text-transform:uppercase; ${typeBadgeStyle}">${post.type}</span>`;
-
-        let mediaHtml = '';
-        if (post.media_links && post.media_links.length > 0) {
-            mediaHtml += `<span style="color:var(--text-light); font-size:0.8rem; display:block;">${post.media_links.length} Add-on(s)</span>`;
-        }
-        if (post.external_link) {
-            const linkColor = post.is_link_public ? 'var(--secondary)' : 'var(--primary)';
-            mediaHtml += `
-                <a href="${post.external_link}" target="_blank" rel="noopener noreferrer" style="color:${linkColor}; font-size:0.8rem; display:flex; align-items:center; gap:0.25rem; font-weight:600; text-decoration:none;">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                    ${post.is_link_public ? 'Public Link' : 'PRIVATE Link'}
-                </a>
-            `;
-        }
-        if (!mediaHtml) mediaHtml = '<span style="color:var(--text-light); font-size:0.8rem;">None</span>';
-
-        const pinnedClass = post.is_pinned ? 'active' : '';
-
-        tableHTML += `
-            <tr id="admin-row-${post.id}">
-                <td data-label="Date" style="color:var(--text-light); font-size:0.85rem;">${dateStr}</td>
-                <td data-label="Author">${authorStr}</td>
-                <td data-label="Type">${typeBadge}</td>
-                <td data-label="Snippet">
-                    <div class="post-snippet">${escapeHTML(post.content)}</div>
-                </td>
-                <td data-label="Attachments">${mediaHtml}</td>
-                <td data-label="Actions">
-                    <div class="admin-action-col">
-                        <button class="admin-btn pin-btn ${pinnedClass}" data-id="${post.id}" data-pinned="${post.is_pinned}" title="Pin/Unpin">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                        </button>
-                        <button class="admin-btn delete-btn" data-id="${post.id}" title="Delete Post">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2-2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `;
+        const prov = post.province || 'Unknown Province';
+        const dist = post.district || 'Unknown District';
+        if (!grouped[prov]) grouped[prov] = { count: 0, districts: {} };
+        if (!grouped[prov].districts[dist]) grouped[prov].districts[dist] = [];
+        grouped[prov].districts[dist].push(post);
+        grouped[prov].count++;
     });
 
-    tableHTML += '</tbody></table>';
-    feedContainer.innerHTML = tableHTML;
+    let accordionHTML = '';
 
+    for (const [provName, provData] of Object.entries(grouped)) {
+        const provId = `prov-${provName.replace(/\s+/g, '-')}`;
+        accordionHTML += `
+            <div class="province-group">
+                <div class="province-header" onclick="toggleAccordion('${provId}')">
+                    <span>${provName} <span class="count-badge">${provData.count}</span></span>
+                    <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+                <div class="district-list" id="${provId}">
+        `;
+
+        for (const [distName, posts] of Object.entries(provData.districts)) {
+            const distId = `dist-${distName.replace(/\s+/g, '-')}-${provId}`;
+            accordionHTML += `
+                <div class="district-group">
+                    <div class="district-header" onclick="toggleAccordion('${distId}')">
+                        <span>${distName} <span style="color:var(--text-light); font-weight:400; font-size:0.85rem; margin-left:0.5rem;">(${posts.length})</span></span>
+                        <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+                    <div class="posts-container" id="${distId}">
+            `;
+
+            posts.forEach(post => {
+                const dateStr = new Date(post.created_at).toLocaleString();
+                const profile = post.profiles;
+                let authorStr = 'Unknown';
+                if (profile) {
+                    authorStr = `${post.is_anonymous ? 'Anon' : profile.full_name}`;
+                }
+
+                const typeBadgeStyle = post.type === 'problem' ? 'background:#fee2e2; color:#b91c1c;' : 'background:#f0f7ff; color:#0056b3;';
+                const typeBadge = `<span style="padding:0.2rem 0.5rem; border-radius:100px; font-size:0.7rem; font-weight:700; text-transform:uppercase; ${typeBadgeStyle}">${post.type}</span>`;
+
+                let mediaHtml = '';
+                if (post.external_link) {
+                    const linkColor = post.is_link_public ? 'var(--secondary)' : 'var(--primary)';
+                    mediaHtml += `
+                        <a href="${post.external_link}" target="_blank" rel="noopener noreferrer" style="color:${linkColor}; font-size:0.8rem; display:inline-flex; align-items:center; gap:0.25rem; font-weight:600; text-decoration:none; margin-left:1rem; background: #fff; padding: 0.2rem 0.6rem; border-radius: 4px; border: 1px solid var(--border);">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                            ${post.is_link_public ? 'Public Link' : 'PRIVATE Link'}
+                        </a>
+                    `;
+                }
+
+                const pinnedClass = post.is_pinned ? 'pinned' : '';
+                const pinBtnClass = post.is_pinned ? 'active' : '';
+
+                accordionHTML += `
+                    <div class="admin-post-card ${pinnedClass}" id="admin-post-${post.id}">
+                        <div class="admin-post-header">
+                            <div>
+                                <div class="admin-author-info">${authorStr} ${typeBadge}</div>
+                                <div class="admin-post-meta">
+                                    <span>${dateStr}</span>
+                                    <span>${post.agree_count || 0} Agree / ${post.disagree_count || 0} Disagree</span>
+                                    ${mediaHtml}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="admin-post-content">${escapeHTML(post.content)}</div>
+                        ${post.admin_feedback ? `<div style="background:#fffbeb; color:#d97706; padding:0.5rem; font-size:0.85rem; border-radius:4px; margin-bottom:1rem; border:1px dashed #fde68a;"><strong>Admin Note:</strong> ${escapeHTML(post.admin_feedback)}</div>` : ''}
+                        
+                        <div class="admin-actions-bar">
+                            <button class="admin-btn edit-god-mode-btn" data-id="${post.id}" title="God Mode Edit">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                            </button>
+                            <button class="admin-btn pin-btn ${pinBtnClass}" data-id="${post.id}" data-pinned="${post.is_pinned}" title="Pin/Unpin">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                            </button>
+                            <button class="admin-btn delete-btn" data-id="${post.id}" title="Delete Post">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2-2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            accordionHTML += `</div></div>`; // End posts-container, End district-group
+        }
+        accordionHTML += `</div></div>`; // End district-list, End province-group
+    }
+
+    feedContainer.innerHTML = accordionHTML;
     bindAdminEvents();
 }
+
+// Helper to toggle accordions
+window.toggleAccordion = function (id) {
+    const el = document.getElementById(id);
+    const header = el.previousElementSibling;
+
+    el.classList.toggle('active');
+    header.classList.toggle('active');
+};
 
 // 5. Event Listeners for Filters & Actions
 function bindAdminEvents() {
     // Delete Listeners
-    document.querySelectorAll('.admin-table .delete-btn').forEach(btn => {
+    document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const id = e.currentTarget.dataset.id;
             if (confirm("HAKIM OVERRIDE: Are you absolutely sure you want to permanently delete this post and all its comments?")) {
-                const row = document.getElementById(`admin-row-${id}`);
-                // Simple GSAP visual feedback before deleting
-                gsap.to(row, { opacity: 0.5, pointerEvents: 'none', duration: 0.2 });
+                const card = document.getElementById(`admin-post-${id}`);
+                gsap.to(card, { opacity: 0.5, pointerEvents: 'none', duration: 0.2 });
 
                 const { error } = await supabase.from('posts').delete().eq('id', id);
                 if (error) {
                     alert('Deletion failed: ' + error.message);
-                    gsap.to(row, { opacity: 1, pointerEvents: 'all', duration: 0.2 });
+                    gsap.to(card, { opacity: 1, pointerEvents: 'all', duration: 0.2 });
                 } else {
-                    gsap.to(row, {
-                        x: 50, opacity: 0, duration: 0.4,
+                    gsap.to(card, {
+                        opacity: 0, height: 0, marginTop: 0, marginBottom: 0, duration: 0.4,
                         onComplete: () => {
-                            row.remove();
-                            loadDashboardStats(); // refresh stats
+                            card.remove();
+                            // Optional: locally remove from allPosts to keep counts accurate if re-rendered
+                            allPosts = allPosts.filter(p => p.id !== id);
+                            loadDashboardStats();
                         }
                     });
                 }
@@ -192,7 +229,7 @@ function bindAdminEvents() {
     });
 
     // Pin Listeners
-    document.querySelectorAll('.admin-table .pin-btn').forEach(btn => {
+    document.querySelectorAll('.pin-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const id = e.currentTarget.dataset.id;
             const isCurrentlyPinned = e.currentTarget.dataset.pinned === 'true';
@@ -205,11 +242,34 @@ function bindAdminEvents() {
                 alert('Pinning failed: ' + error.message);
                 e.currentTarget.style.opacity = '1';
             } else {
-                // Instantly update local array and re-render
                 const post = allPosts.find(p => p.id === id);
                 if (post) post.is_pinned = !isCurrentlyPinned;
                 renderTable();
             }
+        });
+    });
+
+    // God Mode Edit Open
+    document.querySelectorAll('.edit-god-mode-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.dataset.id;
+            const post = allPosts.find(p => p.id === id);
+            if (!post) return;
+
+            document.getElementById('godModePostId').value = post.id;
+            document.getElementById('godModeContent').value = post.content || '';
+
+            // We use offsets, but initialize them at 0 conceptually. 
+            // In a real sophisticated system, we'd load existing overrides. We'll default to 0.
+            document.getElementById('godModeAgreeOffset').value = 0;
+            document.getElementById('godModeDisagreeOffset').value = 0;
+
+            document.getElementById('godModeFeedback').value = post.admin_feedback || '';
+
+            const modal = document.getElementById('godModeModal');
+            modal.style.display = 'flex';
+            modal.classList.remove('hidden');
+            gsap.fromTo(modal.querySelector('.modal'), { scale: 0.95, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3 });
         });
     });
 }
@@ -224,9 +284,55 @@ document.querySelectorAll('.data-filters button').forEach(btn => {
     });
 });
 
+// Modal Close Listeners
+function closeGodModeModal() {
+    const modal = document.getElementById('godModeModal');
+    gsap.to(modal.querySelector('.modal'), {
+        scale: 0.95, opacity: 0, duration: 0.2, onComplete: () => {
+            modal.classList.add('hidden');
+        }
+    });
+}
+
+document.getElementById('closeGodModeBtn').addEventListener('click', closeGodModeModal);
+
+// God Mode Form Submit Handler
+document.getElementById('godModeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.textContent = 'Saving...';
+    btn.disabled = true;
+
+    const id = document.getElementById('godModePostId').value;
+    const newContent = document.getElementById('godModeContent').value;
+    const agreeOffset = parseInt(document.getElementById('godModeAgreeOffset').value, 10) || 0;
+    const disagreeOffset = parseInt(document.getElementById('godModeDisagreeOffset').value, 10) || 0;
+    const adminFeedback = document.getElementById('godModeFeedback').value;
+
+    const { data, error } = await supabase.rpc('admin_override_post', {
+        p_id: id,
+        p_content: newContent,
+        p_agree_offset: agreeOffset,
+        p_disagree_offset: disagreeOffset,
+        p_feedback: adminFeedback
+    });
+
+    btn.textContent = 'Save Overrides';
+    btn.disabled = false;
+
+    if (error) {
+        alert('Failed to override post: ' + error.message);
+    } else {
+        closeGodModeModal();
+        // Re-fetch to guarantee accurate fresh counts and content
+        await fetchAdminFeed();
+    }
+});
+
 function escapeHTML(str) {
     if (!str) return '';
     return str.replace(/[&<>'"]/g,
         tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
     );
 }
+

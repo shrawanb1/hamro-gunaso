@@ -80,14 +80,52 @@
                 </div>
             </div>
 
-            <div class="table-container">
-                <!-- Data will be populated here by hakim.js -->
-                <div id="adminDataFeed" class="admin-feed-loading">
+            <!-- Accordion Container -->
+            <div class="accordion-container" id="adminDataFeed">
+                <div class="admin-feed-loading">
                     Authenticating Superadmin...
                 </div>
             </div>
         </section>
     </main>
+
+    <!-- God Mode Edit Modal -->
+    <div id="godModeModal" class="modal-backdrop hidden">
+        <div class="modal clean-modal">
+            <button class="close-btn" id="closeGodModeBtn">&times;</button>
+            <h2>God Mode Override</h2>
+            <p class="modal-desc">Directly alter database records. Use with extreme caution.</p>
+            
+            <form id="godModeForm">
+                <input type="hidden" id="godModePostId">
+                
+                <div class="form-group">
+                    <label for="godModeContent">Post Content Snippet</label>
+                    <textarea id="godModeContent" rows="4" required placeholder="Override user content..."></textarea>
+                </div>
+                
+                <div class="form-group row god-mode-votes">
+                    <div style="flex:1;">
+                        <label for="godModeAgreeOffset">Agree Override (Offset)</label>
+                        <input type="number" id="godModeAgreeOffset" value="0">
+                        <small>Value to add to true count</small>
+                    </div>
+                    <div style="flex:1;">
+                        <label for="godModeDisagreeOffset">Disagree Override (Offset)</label>
+                        <input type="number" id="godModeDisagreeOffset" value="0">
+                        <small>Value to add to true count</small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="godModeFeedback">Admin Feedback (Internal Note)</label>
+                    <textarea id="godModeFeedback" rows="2" placeholder="Private notes on this override..."></textarea>
+                </div>
+                
+                <button type="submit" class="primary-btn danger-override-btn">Save Overrides</button>
+            </form>
+        </div>
+    </div>
 
     <script type="module" src="hakim.js"></script>
 </body>
