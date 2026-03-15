@@ -1160,7 +1160,7 @@ function renderFeed(posts) {
         }
 
         const cardHTML = `
-            <div class="card ${post.is_pinned ? 'pinned' : ''}" id="post-${post.id}">
+            <div class="card ${post.is_pinned ? 'pinned' : ''} ${(post.media_links && post.media_links.length > 0) ? 'expandable' : ''}" id="post-${post.id}">
                 ${post.is_pinned ? `
                 <div class="pinned-badge">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L12 22"></path><path d="M19 9l-7-7-7 7"></path></svg>
@@ -1239,7 +1239,10 @@ function renderFeed(posts) {
             if (e.target.closest('.card-footer') || e.target.closest('.options-dropdown-container') || ['AUDIO', 'VIDEO', 'A', 'BUTTON', 'INPUT'].includes(e.target.tagName)) {
                 return;
             }
-            if (window.openExpandedPost) window.openExpandedPost(posts[i]);
+            const hasMedia = posts[i].media_links && posts[i].media_links.length > 0;
+            if (hasMedia && window.openExpandedPost) {
+                window.openExpandedPost(posts[i]);
+            }
         });
     });
 
@@ -1837,7 +1840,16 @@ window.openExpandedPost = function (post) {
         }
     }
 
-    document.getElementById('expandedPostText').innerHTML = escapeHTML(post.content) + expandedExternalLinkHtml;
+    const hakimNoteHtml = post.admin_feedback ? `
+        <div class="hakim-note" style="background: linear-gradient(135deg, #fff7ed, #fffbeb); border: 1px solid #fcd34d; border-left: 4px solid #d97706; border-radius: 8px; padding: 0.85rem 1rem; margin-top: 1rem; display: flex; gap: 0.6rem; align-items: flex-start;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" style="flex-shrink:0; margin-top:2px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <div style="text-align: left;">
+                <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:#a16207; font-weight:700;">Hakim's Note</span>
+                <p style="margin:0.25rem 0 0; font-size:0.9rem; color:#78350f; line-height:1.4;">${escapeHTML(post.admin_feedback)}</p>
+            </div>
+        </div>` : '';
+
+    document.getElementById('expandedPostText').innerHTML = escapeHTML(post.content) + expandedExternalLinkHtml + hakimNoteHtml;
 
     // 3. Populate Stats
     const agreeLabel = translations[currentLang]?.agreeText || 'Agree';
@@ -1847,11 +1859,11 @@ window.openExpandedPost = function (post) {
     document.getElementById('expandedPostStats').innerHTML = `
         <button class="vote-btn ${!currentUser || currentUser.is_anonymous ? 'dimmed' : ''}" id="modal-agree-btn" data-id="${post.id}" data-type="agree" data-current-vote="${post.user_vote || 'none'}" style="color: ${post.user_vote === 'agree' ? 'var(--primary)' : 'var(--text-light)'};">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="${post.user_vote === 'agree' ? 'var(--primary)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
-            <span class="vote-text-wrapper"><span class="vote-count" id="modal-agree-count">${post.agree_count || 0}</span> <span data-i18n="agreeText">${agreeLabel}</span></span>
+            <span class="vote-text-wrapper"><span class="vote-count" id="modal-agree-count">${(post.agree_count || 0) + (post.agree_offset || 0)}</span> <span data-i18n="agreeText">${agreeLabel}</span></span>
         </button>
         <button class="vote-btn ${!currentUser || currentUser.is_anonymous ? 'dimmed' : ''}" id="modal-disagree-btn" data-id="${post.id}" data-type="disagree" data-current-vote="${post.user_vote || 'none'}" style="color: ${post.user_vote === 'disagree' ? 'var(--primary)' : 'var(--text-light)'};">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="${post.user_vote === 'disagree' ? 'var(--primary)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
-            <span class="vote-text-wrapper"><span class="vote-count" id="modal-disagree-count">${post.disagree_count || 0}</span> <span data-i18n="disagreeText">${disagreeLabel}</span></span>
+            <span class="vote-text-wrapper"><span class="vote-count" id="modal-disagree-count">${(post.disagree_count || 0) + (post.disagree_offset || 0)}</span> <span data-i18n="disagreeText">${disagreeLabel}</span></span>
         </button>
         <div class="stat-item" style="color:var(--text-light); pointer-events:none;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
