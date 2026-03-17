@@ -149,6 +149,7 @@
                                 <th>STATUS</th>
                                 <th>POSTS</th>
                                 <th>JOINED</th>
+                                <th>TOKEN</th>
                                 <th>ACTIONS</th>
                             </tr>
                         </thead>
@@ -158,6 +159,33 @@
                     </table>
                 </div>
                 <div class="pagination" id="userPagination"></div>
+            </div>
+
+            <!-- Pending Appeals -->
+            <div class="tactical-panel large" id="appealsPanel">
+                <div class="panel-header">
+                    <h3>PENDING BAN APPEALS</h3>
+                    <div class="pulse-ring small"></div>
+                </div>
+                <div class="table-container">
+                    <table class="tactical-table" id="appealsTable">
+                        <thead>
+                            <tr>
+                                <th>DATE</th>
+                                <th>CONTACT EMAIL</th>
+                                <th>DEVICE TOKEN</th>
+                                <th>MESSAGE</th>
+                                <th>ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="appealsTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align:center; padding:2rem; opacity:0.5;">No pending appeals
+                                    intelligence found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Post Management -->

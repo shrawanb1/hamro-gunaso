@@ -32,10 +32,12 @@ async function initDashboard() {
     await initMapAndChart();
     await fetchUserManagement();
     await fetchPostManagement();
+    await fetchAppeals();
 
     // Setup Auto-refresh (Every 2 minutes)
     setInterval(updateStats, 120000);
     setInterval(fetchActivityFeed, 120000);
+    setInterval(fetchAppeals, 60000); // Check appeals every minute
 
     // Event Listeners
     setupEventListeners();
@@ -179,11 +181,18 @@ async function fetchUserManagement() {
                 <td><span class="badge ${statusClass}">${statusText}</span></td>
                 <td>${postCount}</td>
                 <td>${joinedDate}</td>
+                <td><code style="font-size: 10px; opacity: 0.6;">${user.device_token ? user.device_token.slice(0, 8) + '...' : 'N/A'}</code></td>
                 <td>
                     <div class="action-btns">
-                        <button class="btn-icon" title="View Profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
-                        <button class="btn-icon danger ban-btn" data-id="${user.id}" data-banned="${user.is_banned}" title="${user.is_banned ? 'Unban' : 'Ban'} User">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                        <button class="btn-icon ${user.is_banned ? 'success' : 'danger'} ban-btn" 
+                                data-id="${user.id}" 
+                                data-banned="${user.is_banned}" 
+                                data-token="${user.device_token || ''}"
+                                title="${user.is_banned ? 'Unban & Restore' : 'Ban User'}">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                            </svg>
                         </button>
                     </div>
                 </td>
@@ -196,9 +205,22 @@ async function fetchUserManagement() {
         btn.addEventListener('click', async (e) => {
             const id = e.currentTarget.dataset.id;
             const isBanned = e.currentTarget.dataset.banned === 'true';
-            if (confirm(`Are you sure you want to ${isBanned ? 'UNBAN' : 'BAN'} this user?`)) {
-                await supabase.rpc('admin_ban_user', { p_user_id: id, p_status: !isBanned });
-                fetchUserManagement(); // Refresh
+            const token = e.currentTarget.dataset.token;
+
+            if (isBanned) {
+                if (confirm(`Restore access for this user? This will clear their ban.`)) {
+                    await supabase.rpc('hakim_unban_user', { p_device_token: token });
+                    showToast('Intelligence restriction lifted.');
+                    fetchUserManagement();
+                    fetchAppeals();
+                }
+            } else {
+                const reason = prompt("Enter Ban Reason (Violations, Spam, etc.):");
+                if (reason) {
+                    await supabase.rpc('hakim_ban_user', { p_user_id: id, p_reason: reason });
+                    showToast('Target restricted and locked out.');
+                    fetchUserManagement();
+                }
             }
         });
     });
@@ -349,3 +371,16 @@ function getColorForCount(d) {
                         d > 0 ? '#22c55e' :
                             '#334155';
 }
+ 
+ / /   - - -   A p p e a l s   M a n a g e m e n t   - - -  
+ a s y n c   f u n c t i o n   f e t c h A p p e a l s ( )   {  
+         c o n s t   t a b l e B o d y   =   d o c u m e n t . g e t E l e m e n t B y I d ( ' a p p e a l s T a b l e B o d y ' ) ;  
+         c o n s t   {   d a t a ,   e r r o r   }   =   a w a i t   s u p a b a s e . f r o m ( ' b a n _ a p p e a l s ' ) . s e l e c t ( ' * ' ) . e q ( ' s t a t u s ' ,   ' p e n d i n g ' ) . o r d e r ( ' c r e a t e d _ a t ' ,   {   a s c e n d i n g :   f a l s e   } ) ;  
+  
+         i f   ( e r r o r   | |   ! d a t a   | |   d a t a . l e n g t h   = = =   0 )   {  
+                 r e t u r n ;  
+         }  
+  
+         t a b l e B o d y . i n n e r H T M L   =   d a t a . m a p ( a p p e a l   = >   {  
+                 c o n s t   d a t e   =   n e w   D a t e ( a p p e a l . c r e a t e d _ a t ) . t o L o c a l e D a t e S t r i n g ( ) ;  
+ 
