@@ -23,31 +23,22 @@
 </head>
 
 <body style="overflow: hidden;">
-    <!-- Banned Lockdown Screen -->
-    <div id="banned-lockdown-screen" class="hidden">
+    <!-- Strict Lockdown Screen -->
+    <div id="lockdown-screen" class="hidden">
         <div id="lockdown-content">
             <div class="lockdown-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
                 </svg>
             </div>
             <h1>Access Restricted</h1>
-            <p>Your device or account has been banned from Hamro Gunaso for violating community guidelines.</p>
-
-            <div class="appeal-box">
-                <h3>Submit an Appeal</h3>
-                <form id="appeal-form" onsubmit="submitAppeal(event)">
-                    <div class="form-group">
-                        <input type="email" id="appeal-email" placeholder="Contact Email Address" required>
-                    </div>
-                    <div class="form-group">
-                        <textarea id="appeal-message" rows="4" placeholder="Describe why you should be unbanned..."
-                            required></textarea>
-                    </div>
-                    <button type="submit" class="primary-btn">Submit Appeal</button>
-                </form>
-                <div id="appeal-status"></div>
+            <p>Your access to this web app has been restricted due to a violation of our community guidelines.</p>
+            
+            <div class="lockdown-actions">
+                <a href="https://www.google.com" class="lockdown-btn slate-btn">Exit</a>
+                <a href="mailto:shrawanb121@gmail.com" class="lockdown-btn crimson-btn">Contact Admins</a>
             </div>
 
             <div class="lockdown-footer">

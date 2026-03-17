@@ -118,14 +118,16 @@ if (!deviceToken) {
     localStorage.setItem('hg_device_token', deviceToken);
 }
 
-// Bouncer: Check if device or user is banned
+// 4. Global Bouncer Logic (Lockdown)
+window.showLockdownScreen = showLockdownScreen;
+window.checkBanStatus = checkBanStatus;
+
 async function checkBanStatus() {
     // 1. Check local session
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
 
-    // 2. Query ban status via RPC or table (Prefer RPC for security if exists, else direct check)
-    // We check both the device token and the user id
+    // 2. Query ban status
     const { data: bannedDevice } = await supabase
         .from('banned_devices')
         .select('*')
@@ -144,59 +146,39 @@ async function checkBanStatus() {
 
     if (bannedDevice || isUserBanned) {
         showLockdownScreen();
+        return true; // Banned
     }
+    return false; // Not banned
 }
 
 function showLockdownScreen() {
-    const lockdown = document.getElementById('banned-lockdown-screen');
+    const lockdown = document.getElementById('lockdown-screen');
+    const deviceIdSpan = document.getElementById('lockdown-device-id');
+    
     if (lockdown) {
         lockdown.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
+        if (deviceIdSpan) deviceIdSpan.textContent = deviceToken.slice(0, 8);
         
-        // Hide main elements
-        const main = document.querySelector('main');
+        // Block scrolling and hide main UI completely
+        document.body.style.overflow = 'hidden';
         const navbar = document.querySelector('.navbar');
-        if (main) main.style.display = 'none';
+        const containers = document.querySelectorAll('.container, main, #feed');
+        
         if (navbar) navbar.style.display = 'none';
+        containers.forEach(el => el.style.display = 'none');
 
-        // Animate in
+        // GSAP Animation for impact
         if (typeof gsap !== 'undefined') {
             gsap.fromTo(lockdown, { opacity: 0 }, { opacity: 1, duration: 0.5 });
-            gsap.fromTo("#lockdown-content", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.3 });
+            gsap.fromTo("#lockdown-content", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.2 });
         }
     }
 }
 
-async function submitAppeal(e) {
-    e.preventDefault();
-    const email = document.getElementById('appeal-email').value;
-    const message = document.getElementById('appeal-message').value;
-    const btn = e.target.querySelector('button');
-    const statusMsg = document.getElementById('appeal-status');
+// Run immediately on script load
+checkBanStatus();
 
-    if (!email || !message) return;
-
-    btn.disabled = true;
-    btn.textContent = 'Submitting...';
-
-    const { error } = await supabase.rpc('submit_ban_appeal', {
-        p_device_token: deviceToken,
-        p_email: email,
-        p_message: message
-    });
-
-    if (error) {
-        statusMsg.textContent = 'Error submitting appeal. Please try again.';
-        statusMsg.style.color = 'var(--primary)';
-        btn.disabled = false;
-        btn.textContent = 'Submit Appeal';
-    } else {
-        statusMsg.textContent = 'Appeal submitted to the Hakim. Keep this page open or check back later.';
-        statusMsg.style.color = '#4ade80';
-        e.target.reset();
-        btn.textContent = 'Appeal Sent';
-    }
-}
+// Note: submitAppeal removed as requested by Task 1 (Buttons now Exit/Contact)
 
 const translations = {
     en: {
@@ -463,29 +445,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 
-function handleAuthChange(session) {
-        if (session && session.user) {
-            currentUser = session.user;
-            isAdmin = currentUser.email === ADMIN_EMAIL;
-            loginBtn.classList.add('hidden');
-            userProfile.classList.remove('hidden');
+async function handleAuthChange(session) {
+    if (session && session.user) {
+        currentUser = session.user;
+        isAdmin = currentUser.email === ADMIN_EMAIL;
+        loginBtn.classList.add('hidden');
+        userProfile.classList.remove('hidden');
 
-            const avatarUrl = currentUser.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.user_metadata?.full_name || currentUser.email.split('@')[0])}&background=003893&color=fff`;
-            userAvatar.src = avatarUrl;
+        const avatarUrl = currentUser.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.user_metadata?.full_name || currentUser.email.split('@')[0])}&background=003893&color=fff`;
+        userAvatar.src = avatarUrl;
 
-            // Sync Device Token to Profile
-            supabase.from('profiles').update({ device_token: deviceToken }).eq('id', currentUser.id).then();
+        // Sync Device Token to Profile
+        supabase.from('profiles').update({ device_token: deviceToken }).eq('id', currentUser.id).then();
 
-            if (!authModal.classList.contains('hidden')) {
-                closeModal('authModal');
-            }
-        } else {
-            currentUser = null;
-            isAdmin = false;
-            loginBtn.classList.remove('hidden');
-            userProfile.classList.add('hidden');
+        // Immediate ban check upon auth change
+        await checkBanStatus();
+
+        if (!authModal.classList.contains('hidden')) {
+            closeModal('authModal');
         }
+    } else {
+        currentUser = null;
+        isAdmin = false;
+        loginBtn.classList.remove('hidden');
+        userProfile.classList.add('hidden');
     }
+}
 
 
 function setupEventListeners() {
@@ -748,7 +733,7 @@ function setupEventListeners() {
         const isVerified = currentUser.app_metadata.provider !== 'anonymous';
         const { data: canPost, error: rpcError } = await supabase.rpc('check_daily_post_limit', {
             p_user_id: currentUser.id,
-            p_device_id: deviceId,
+            p_device_id: deviceToken,
             p_is_verified: isVerified
         });
 
@@ -808,7 +793,7 @@ function setupEventListeners() {
                 turnstileToken: turnstileResponse,
                 postPayload: {
                     user_id: currentUser.id,
-                    device_id: deviceId,
+                    device_id: deviceToken,
                     type,
                     province,
                     district,
@@ -825,7 +810,12 @@ function setupEventListeners() {
         submitBtn.disabled = false;
 
         if (error) {
-            alert('Error posting: ' + error.message);
+            // Catch 403 Forbidden (Banned) or other function errors
+            if (error.status === 403 || (error.message && error.message.toLowerCase().includes('banned'))) {
+                showLockdownScreen();
+            } else {
+                alert('Error posting: ' + error.message);
+            }
         } else {
             document.getElementById('postForm').reset();
             // Clear media preview
