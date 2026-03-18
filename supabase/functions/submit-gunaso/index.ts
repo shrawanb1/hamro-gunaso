@@ -7,18 +7,36 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-    // Handle CORS preflight requests
+    // 1. CORS Preflight
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
     }
 
-    try {
-        const { turnstileToken, postPayload } = await req.json()
+    console.log("Submit-Gunaso: Request received");
 
-        // --- 1. Verify Turnstile Token with Cloudflare (Perform this FIRST) ---
-        const secretKey = Deno.env.get('TURNSTILE_SECRET_KEY')
+    try {
+        // --- SAFE JSON PARSING ---
+        const body = await req.json().catch(() => null);
+        if (!body) {
+            throw new Error("Invalid request: Missing JSON body");
+        }
+
+        const { turnstileToken, postPayload } = body;
+
+        if (!turnstileToken) {
+            throw new Error("Security check failed: Missing Turnstile token");
+        }
+        if (!postPayload) {
+            throw new Error("Submission failed: Missing post payload");
+        }
+
+        console.log("Payload validated for User:", postPayload.user_id);
+
+        // --- 1. CLOUDFLARE TURNSTILE (MUST HAPPEN FIRST) ---
+        const secretKey = Deno.env.get('TURNSTILE_SECRET_KEY');
         if (!secretKey) {
-            throw new Error('Server configuration error: missing Turnstile secret key.')
+            console.error("CRITICAL: TURNSTILE_SECRET_KEY is missing from environment");
+            throw new Error('Server configuration error: missing Turnstile secret key.');
         }
 
         const formData = new FormData();
@@ -31,81 +49,99 @@ serve(async (req) => {
         });
 
         const cfData = await cfResponse.json();
-
         if (!cfData.success) {
-            console.error('Turnstile verification failed:', cfData);
+            console.warn("Turnstile check failed:", cfData);
             return new Response(
-                JSON.stringify({ error: 'Captcha verification failed. Please try again.' }),
+                JSON.stringify({ error: 'Security verification failed. Please refresh and try again.', details: cfData }),
                 { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
             )
         }
 
-        // --- 2. Initialize Supabase Client with Service Role (to check ban status properly) ---
-        // We use service role to ensure we can query banned_devices table if RLS is strict
-        const supabaseAdmin = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-            {
-                auth: {
-                    autoRefreshToken: false,
-                    persistSession: false
-                }
-            }
-        )
+        // --- 2. ADMIN CLIENT (BYPASS RLS FOR BAN CHECK) ---
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-        // --- 3. Robust Ban Check (Fixing the Global Outage) ---
-        // Null Safety: Use .maybeSingle() and handle matches explicitly
+        if (!supabaseUrl || !serviceKey) {
+            console.error("CRITICAL: Supabase Admin configuration missing");
+            throw new Error("Server configuration error: missing database credentials.");
+        }
+
+        const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+            auth: { autoRefreshToken: false, persistSession: false }
+        });
+
+        // --- 3. BULLETPROOF BAN CHECK ---
+        const deviceId = postPayload.device_id || 'unknown';
+        const userEmail = postPayload.user_email || 'none';
+
+        console.log(`Checking ban status for Device: ${deviceId}, Email: ${userEmail}`);
+
         const { data: bannedRecord, error: banCheckError } = await supabaseAdmin
             .from('banned_devices')
             .select('*')
-            .or(`device_token.eq.${postPayload.device_id},banned_email.eq.${postPayload.user_email || 'none'}`)
+            .or(`device_token.eq."${deviceId}",banned_email.eq."${userEmail}"`)
             .maybeSingle();
 
         if (banCheckError) {
-            console.error('Ban check error:', banCheckError);
-            // Don't crash if ban check fails, but log it. 
-            // However, based on user request, we want it to proceed if *no* record is found.
+            console.error("Ban check database error (continuing anyway):", banCheckError.message);
+            // We proceed if the query itself fails, to avoid bricking the platform on DB hiccups
         }
 
         if (bannedRecord) {
+            console.warn(`BLOCKED: Banned user attempt detected for ${userEmail} / ${deviceId}`);
             return new Response(
-                JSON.stringify({ error: 'Your account or device has been banned from posting.' }),
+                JSON.stringify({ error: 'Your account or device is currently restricted from posting.', details: 'Access denied due to active ban.' }),
                 { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
             )
         }
 
-        // --- 4. Initialize User Client for the actual Insert (Enforces RLS) ---
+        // --- 4. USER CLIENT (ENFORCE RLS ON INSERT) ---
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) {
+            throw new Error("Unauthorized: Missing Authorization header");
+        }
+
         const supabaseUser = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
+            supabaseUrl,
             Deno.env.get('SUPABASE_ANON_KEY') ?? '',
             {
-                global: {
-                    headers: { Authorization: req.headers.get('Authorization')! },
-                },
+                global: { headers: { Authorization: authHeader } },
             }
-        )
+        );
 
-        // --- 5. Insert Post into Database ---
+        // --- 5. FINAL INSERT ---
+        console.log("Inserting gunaso into database...");
         const { data, error: insertError } = await supabaseUser
             .from('posts')
             .insert([postPayload])
             .select()
-            .maybeSingle(); // Changed from .single() for safety
+            .maybeSingle();
 
         if (insertError) {
-            throw new Error(`Database error: ${insertError.message}`);
+            console.error("Insertion error:", insertError);
+            throw new Error(`Database Error: ${insertError.message}`);
         }
 
+        console.log("Submission successful!");
         return new Response(
             JSON.stringify(data),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         )
 
-    } catch (err) {
-        console.error('Edge Function Fatal Error:', err.message)
+    } catch (err: any) {
+        const errorMsg = err.message || "An unexpected server error occurred";
+        console.error("EDGE FUNCTION FATAL:", errorMsg, err.stack);
+
         return new Response(
-            JSON.stringify({ error: err.message }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            JSON.stringify({
+                error: errorMsg,
+                details: err.toString(),
+                stack: err.stack
+            }),
+            {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 400
+            }
         )
     }
 })

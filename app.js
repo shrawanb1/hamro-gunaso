@@ -811,22 +811,26 @@ function setupEventListeners() {
         submitBtn.disabled = false;
 
         if (error) {
-            let errorMsg = error.message;
+            console.error('Gunaso Submission Error:', error);
+            
+            let message = error.message;
+            let details = '';
 
-            // Try to parse detailed error from response body if it's a supabase function error
-            if (error instanceof Error && 'context' in error) {
-                // Supabase function errors can be tricky, let's try to find a message
-                console.error('Detailed Function Error:', error);
+            // Attempt to extract detailed server error if available
+            if (error.context && typeof error.context.json === 'function') {
+                try {
+                    const serverError = await error.context.json();
+                    if (serverError.error) message = serverError.error;
+                    if (serverError.details) details = `\nDetails: ${serverError.details}`;
+                } catch (e) {
+                    console.error('Failed to parse server error JSON:', e);
+                }
             }
 
-            // If it's a ban, show lockdown
-            if (error.status === 403 || (errorMsg && errorMsg.toLowerCase().includes('banned'))) {
+            if (error.status === 403 || message.toLowerCase().includes('banned') || message.toLowerCase().includes('restricted')) {
                 showLockdownScreen();
             } else {
-                // If the error message is just "Edge Function returned a non-2xx status code",
-                // we should try to get the actual JSON error from the body if possible.
-                // But supabase-js usually puts it in the 'error' object or we need to handle it better.
-                alert('Error posting: ' + errorMsg);
+                alert(`Error: ${message}${details}`);
             }
         } else {
             document.getElementById('postForm').reset();
