@@ -793,6 +793,7 @@ function setupEventListeners() {
                 turnstileToken: turnstileResponse,
                 postPayload: {
                     user_id: currentUser.id,
+                    user_email: currentUser.email, // Added for backend ban check
                     device_id: deviceToken,
                     type,
                     province,
@@ -810,11 +811,22 @@ function setupEventListeners() {
         submitBtn.disabled = false;
 
         if (error) {
-            // Catch 403 Forbidden (Banned) or other function errors
-            if (error.status === 403 || (error.message && error.message.toLowerCase().includes('banned'))) {
+            let errorMsg = error.message;
+
+            // Try to parse detailed error from response body if it's a supabase function error
+            if (error instanceof Error && 'context' in error) {
+                // Supabase function errors can be tricky, let's try to find a message
+                console.error('Detailed Function Error:', error);
+            }
+
+            // If it's a ban, show lockdown
+            if (error.status === 403 || (errorMsg && errorMsg.toLowerCase().includes('banned'))) {
                 showLockdownScreen();
             } else {
-                alert('Error posting: ' + error.message);
+                // If the error message is just "Edge Function returned a non-2xx status code",
+                // we should try to get the actual JSON error from the body if possible.
+                // But supabase-js usually puts it in the 'error' object or we need to handle it better.
+                alert('Error posting: ' + errorMsg);
             }
         } else {
             document.getElementById('postForm').reset();
