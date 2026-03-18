@@ -13,8 +13,6 @@
         rel="stylesheet">
 
     <!-- External Libraries -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
@@ -107,27 +105,48 @@
 
         <!-- Row 2: Visualizations -->
         <section class="viz-grid">
-            <!-- Left: Activity Feed -->
+            <!-- Left: Activity Feed (Keep as is) -->
             <div class="tactical-panel recent-activities">
                 <div class="panel-header">
-                    <h3>RECENT GUNASO ACTIVITIES</h3>
-                    <button class="panel-action">VIEW ALL</button>
+                    <h3>RECENT ACTIVITY FEED</h3>
+                    <button id="viewAllActivity" class="panel-action">VIEW ALL</button>
                 </div>
                 <div class="activity-list" id="activityFeed">
                     <div class="loading-spinner">FETCHING INTELLIGENCE...</div>
                 </div>
             </div>
 
-            <!-- Right: Nepal Map Distribution -->
-            <div class="tactical-panel map-distribution">
+            <!-- Right: Distribution Charts -->
+            <div class="tactical-panel distribution-analytics">
                 <div class="panel-header">
-                    <h3>GUNASO DISTRIBUTION BY PROVINCE</h3>
+                    <h3>GUNASO GEO-DISTRIBUTION</h3>
                 </div>
-                <div class="map-viz-container">
-                    <div id="nepalMap" class="tactical-map"></div>
-                    <div class="map-sidebar">
-                        <canvas id="provinceChart"></canvas>
-                        <div class="map-legend" id="mapLegend"></div>
+                <div class="charts-container-row">
+                    <div class="chart-box">
+                        <span class="chart-label">POSTS BY PROVINCE</span>
+                        <div class="chart-wrapper">
+                            <canvas id="provincePieChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-box">
+                        <span class="chart-label" id="districtChartLabel">SELECT PROVINCE</span>
+                        <div class="chart-wrapper">
+                            <canvas id="districtPieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Row 3: Platform Activity Timeline -->
+        <section class="timeline-row">
+            <div class="tactical-panel activity-timeline">
+                <div class="panel-header">
+                    <h3>LIVE PLATFORM HEARTBEAT (REAL-TIME OPERATIONS)</h3>
+                </div>
+                <div class="timeline-container">
+                    <div class="chart-wrapper">
+                        <canvas id="activityLineGraph"></canvas>
                     </div>
                 </div>
             </div>
@@ -161,6 +180,33 @@
                 <div class="pagination" id="userPagination"></div>
             </div>
 
+            <!-- Post Management -->
+            <div class="tactical-panel large">
+                <div class="panel-header">
+                    <h3>POST MANAGEMENT</h3>
+                    <button class="panel-action secondary">EXPORT</button>
+                </div>
+                <div class="table-container">
+                    <table class="tactical-table" id="postTable">
+                        <thead>
+                            <tr>
+                                <th>DATE</th>
+                                <th>POST TITLE</th>
+                                <th>USER</th>
+                                <th>PROVINCE</th>
+                                <th>DISTRICT</th>
+                                <th>STATUS</th>
+                                <th>ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="postTableBody">
+                            <!-- JS Inject -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="postPagination"></div>
+            </div>
+
             <!-- Pending Appeals -->
             <div class="tactical-panel large" id="appealsPanel">
                 <div class="panel-header">
@@ -186,32 +232,6 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
-
-            <!-- Post Management -->
-            <div class="tactical-panel large">
-                <div class="panel-header">
-                    <h3>POST MANAGEMENT</h3>
-                    <button class="panel-action secondary">EXPORT</button>
-                </div>
-                <div class="table-container">
-                    <table class="tactical-table" id="postTable">
-                        <thead>
-                            <tr>
-                                <th>POST TITLE</th>
-                                <th>USER</th>
-                                <th>PROVINCE</th>
-                                <th>DISTRICT</th>
-                                <th>STATUS</th>
-                                <th>ACTIONS</th>
-                            </tr>
-                        </thead>
-                        <tbody id="postTableBody">
-                            <!-- JS Inject -->
-                        </tbody>
-                    </table>
-                </div>
-                <div class="pagination" id="postPagination"></div>
             </div>
         </section>
     </main>

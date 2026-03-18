@@ -154,16 +154,16 @@ async function checkBanStatus() {
 function showLockdownScreen() {
     const lockdown = document.getElementById('lockdown-screen');
     const deviceIdSpan = document.getElementById('lockdown-device-id');
-    
+
     if (lockdown) {
         lockdown.classList.remove('hidden');
         if (deviceIdSpan) deviceIdSpan.textContent = deviceToken.slice(0, 8);
-        
+
         // Block scrolling and hide main UI completely
         document.body.style.overflow = 'hidden';
         const navbar = document.querySelector('.navbar');
         const containers = document.querySelectorAll('.container, main, #feed');
-        
+
         if (navbar) navbar.style.display = 'none';
         containers.forEach(el => el.style.display = 'none');
 
@@ -399,6 +399,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     setupMediaPreview();
+    setupRealtimeSubscriptions();
 
 
     // Initialize Ban Check
@@ -811,26 +812,28 @@ function setupEventListeners() {
         submitBtn.disabled = false;
 
         if (error) {
-            console.error('Gunaso Submission Error:', error);
-            
-            let message = error.message;
-            let details = '';
+            console.error('Submission Failed (v5-Diagnostic):', error);
 
-            // Attempt to extract detailed server error if available
-            if (error.context && typeof error.context.json === 'function') {
-                try {
-                    const serverError = await error.context.json();
-                    if (serverError.error) message = serverError.error;
-                    if (serverError.details) details = `\nDetails: ${serverError.details}`;
-                } catch (e) {
-                    console.error('Failed to parse server error JSON:', e);
+            let message = error.message || 'Unknown Error';
+            let status = error.status || error.code;
+
+            if (!status && error.context && error.context.status) status = error.context.status;
+            if (!status) status = 'No Status';
+
+            try {
+                if (error.context && typeof error.context.json === 'function') {
+                    const errData = await error.context.json();
+                    if (errData.error) message = `Server Error: ${errData.error}`;
+                    if (errData.stack) console.error('Server Stack Trace:', errData.stack);
                 }
+            } catch (e) {
+                console.warn('Could not parse error context JSON:', e);
             }
 
-            if (error.status === 403 || message.toLowerCase().includes('banned') || message.toLowerCase().includes('restricted')) {
+            if (status === 403 || message.toLowerCase().includes('banned')) {
                 showLockdownScreen();
             } else {
-                alert(`Error: ${message}${details}`);
+                alert(`Submission Failed (Status: ${status})\n\nMessage: ${message}\n\nCheck F12 Console Network Tab for details.`);
             }
         } else {
             document.getElementById('postForm').reset();
@@ -1013,6 +1016,28 @@ async function fetchFeed() {
     }
 
     renderFeed(data);
+}
+
+
+async function setupRealtimeSubscriptions() {
+    const channel = supabase.channel('feed_realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, async () => {
+            console.log("Realtime Feed Update: POSTS");
+            await fetchFeed();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'post_votes' }, async () => {
+            console.log("Realtime Feed Update: VOTES");
+            await fetchFeed();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'post_comments' }, async () => {
+            console.log("Realtime Feed Update: COMMENTS");
+            await fetchFeed();
+        })
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('Realtime Feed Sync established.');
+            }
+        });
 }
 
 
@@ -1328,7 +1353,7 @@ function renderFeed(posts) {
     document.querySelectorAll('.card').forEach((card, i) => {
         card.addEventListener('click', (e) => {
             // Ignore clicks on interactive elements inside the card
-            if (e.target.closest('.card-footer') || e.target.closest('.options-dropdown-container') || ['AUDIO', 'VIDEO', 'A', 'BUTTON', 'INPUT'].includes(e.target.tagName)) {
+            if (e.target.closest('.card-footer') || e.target.closest('.options-menu') || e.target.closest('button') || ['AUDIO', 'VIDEO', 'A', 'INPUT'].includes(e.target.tagName)) {
                 return;
             }
             const hasMedia = posts[i].media_links && posts[i].media_links.length > 0;

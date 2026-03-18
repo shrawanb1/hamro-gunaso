@@ -34,22 +34,55 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+async function setupRealtimeSubscriptions() {
+    const channel = supabase.channel('hakim_realtime_v2')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, async () => {
+             console.log("Realtime Intelligence Received: POSTS");
+             await Promise.allSettled([updateStats(), fetchActivityFeed(), updateLiveHeartbeat(), fetchPostManagement()]);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'post_comments' }, async () => {
+             console.log("Realtime Intelligence Received: COMMENTS");
+             await Promise.allSettled([updateStats(), fetchActivityFeed(), updateLiveHeartbeat()]);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'post_votes' }, async () => {
+             console.log("Realtime Intelligence Received: VOTES");
+             await Promise.allSettled([updateStats(), updateLiveHeartbeat()]);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, async () => {
+             console.log("Realtime Intelligence Received: PROFILES");
+             await Promise.allSettled([updateStats(), fetchUserManagement()]);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'ban_appeals' }, async () => {
+             console.log("Realtime Intelligence Received: APPEALS");
+             await fetchAppeals();
+        })
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('Realtime Tactical Uplink established.');
+            }
+        });
+}
+
 async function initDashboard() {
     try {
         // Parallel execution to speed up loading
         await Promise.allSettled([
             updateStats(),
             fetchActivityFeed(),
-            initMapAndChart(),
+            initAnalyticsCharts(),
             fetchUserManagement(),
             fetchPostManagement(),
             fetchAppeals()
         ]);
 
-        // Setup Auto-refresh
+        // Setup Realtime Events
+        setupRealtimeSubscriptions();
+
+        // Setup Coarse Fallback Refresh (Stats and less frequent data)
         setInterval(updateStats, 120000); // 2 mins
         setInterval(fetchActivityFeed, 120000);
         setInterval(fetchAppeals, 60000); // 1 min
+        setInterval(updateLiveHeartbeat, 60000); // 1 min sync
 
         // Event Listeners
         setupEventListeners();
@@ -121,78 +154,190 @@ async function fetchActivityFeed() {
     }
 }
 
-// 3. Interactive Map & Chart
-async function initMapAndChart() {
+// 3. Chart.js Analytics Suite
+let provincePie, districtPie, activityLine;
+
+async function initAnalyticsCharts() {
     try {
-        const { data: distData, error: distError } = await supabase.rpc('get_province_distribution');
-        if (distError) throw distError;
+        // A. Province Distribution
+        const { data: provData, error: provError } = await supabase.rpc('get_province_distribution');
+        if (provError) throw provError;
 
-        const counts = {};
-        distData.forEach(d => { counts[d.province] = d.post_count; });
+        renderProvinceChart(provData);
 
-        // Initialize Leaflet Map
-        const mapContainer = document.getElementById('nepalMap');
-        if (mapContainer && !map) {
-            map = L.map('nepalMap', { zoomControl: false, attributionControl: false }).setView([28.3949, 84.1240], 7);
-            const geoData = await fetch(NEPAL_GEOJSON_URL).then(r => r.json());
-
-            L.geoJSON(geoData, {
-                style: (feature) => {
-                    const name = feature.properties.name || feature.properties.STATE_NAME;
-                    const count = counts[name] || 0;
-                    return {
-                        fillColor: getColorForCount(count),
-                        weight: 1,
-                        opacity: 1,
-                        color: '#1e293b',
-                        fillOpacity: 0.7
-                    };
-                },
-                onEachFeature: (feature, layer) => {
-                    const name = feature.properties.name || feature.properties.STATE_NAME;
-                    layer.bindTooltip(`<strong>${name}</strong>: ${counts[name] || 0} Posts`, { sticky: true });
-                }
-            }).addTo(map);
+        // B. Initial District Data (From top province)
+        if (provData && provData.length > 0) {
+            updateDistrictChart(provData[0].province);
         }
 
-        // Initialize Chart.js
-        const chartCanvas = document.getElementById('provinceChart');
-        if (chartCanvas) {
-            const ctx = chartCanvas.getContext('2d');
-            if (provinceChart) provinceChart.destroy();
+        // C. Live Heartbeat
+        await updateLiveHeartbeat();
 
-            provinceChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: distData.map(d => d.province),
-                    datasets: [{
-                        label: 'Posts',
-                        data: distData.map(d => d.post_count),
-                        backgroundColor: '#3b82f6',
-                        borderColor: '#60a5fa',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
-                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } }
-                    },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
     } catch (err) {
-        console.error("Map/Chart Init Failure:", err);
+        console.error("Analytics Suite Failure:", err);
     }
 }
 
+async function updateLiveHeartbeat() {
+    try {
+        const { data, error } = await supabase.rpc('get_live_usage_heartbeat');
+        if (error) throw error;
+        renderLiveUsageHeartbeat(data);
+    } catch (err) {
+        console.error("Heartbeat sync failure:", err);
+    }
+}
+
+function renderProvinceChart(data) {
+    const ctx = document.getElementById('provincePieChart')?.getContext('2d');
+    if (!ctx) return;
+
+    if (provincePie) provincePie.destroy();
+
+    const chartColors = ['#3b82f6', '#ef4444', '#a855f7', '#eab308', '#22c55e', '#f97316', '#06b6d4'];
+
+    provincePie = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: data.map(d => d.province),
+            datasets: [{
+                data: data.map(d => d.post_count),
+                backgroundColor: chartColors,
+                borderColor: '#0f172a',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } }
+            },
+            onClick: (evt, elements) => {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const provinceName = provincePie.data.labels[index];
+                    updateDistrictChart(provinceName);
+                }
+            }
+        }
+    });
+}
+
+async function updateDistrictChart(provinceName) {
+    try {
+        const label = document.getElementById('districtChartLabel');
+        if (label) label.textContent = `DISTRICTS IN ${provinceName.toUpperCase()}`;
+
+        const { data, error } = await supabase.rpc('get_district_distribution', { p_province: provinceName });
+        if (error) throw error;
+
+        const ctx = document.getElementById('districtPieChart')?.getContext('2d');
+        if (!ctx) return;
+
+        if (districtPie) districtPie.destroy();
+
+        districtPie = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: data.map(d => d.district),
+                datasets: [{
+                    data: data.map(d => d.post_count),
+                    backgroundColor: ['#60a5fa', '#f87171', '#c084fc', '#fbbf24', '#4ade80', '#fb923c', '#22d3ee'],
+                    borderColor: '#0f172a',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    } catch (err) {
+        console.error("District Drill-down Failure:", err);
+    }
+}
+
+function renderLiveUsageHeartbeat(data) {
+    const ctx = document.getElementById('activityLineGraph')?.getContext('2d');
+    if (!ctx) return;
+
+    if (activityLine) activityLine.destroy();
+
+    const cyanGradient = ctx.createLinearGradient(0, 0, 0, 400);
+    cyanGradient.addColorStop(0, 'rgba(6, 182, 212, 0.4)');
+    cyanGradient.addColorStop(1, 'rgba(6, 182, 212, 0)');
+
+    activityLine = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(d => {
+                const date = new Date(d.minute_timestamp);
+                return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+            }),
+            datasets: [
+                {
+                    label: 'Platform Actions (Minute Heartbeat)',
+                    data: data.map(d => d.action_count),
+                    borderColor: '#06b6d4',
+                    backgroundColor: cyanGradient,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 2, 
+                    pointHitRadius: 10,
+                    borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false }, 
+                    ticks: { color: '#64748b', font: { family: 'Space Grotesk', size: 10 } } 
+                },
+                x: { 
+                    grid: { display: false }, 
+                    ticks: { 
+                        color: '#64748b', 
+                        font: { family: 'Space Grotesk', size: 10 },
+                        autoSkip: true,
+                        maxTicksLimit: 12 
+                    } 
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#0f172a',
+                    titleFont: { family: 'Space Grotesk' },
+                    bodyFont: { family: 'Inter' },
+                    borderColor: '#06b6d4',
+                    borderWidth: 1,
+                    displayColors: false
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index',
+            }
+        }
+    });
+}
+
 // 4. User Management Table
+let userPage = 1;
+const ITEMS_PER_PAGE = 8;
+
 async function fetchUserManagement() {
     try {
         const tableBody = document.getElementById('userTableBody');
+        const pagination = document.getElementById('userPagination');
         if (!tableBody) return;
 
         const { data, error } = await supabase
@@ -202,11 +347,21 @@ async function fetchUserManagement() {
 
         if (error) throw error;
 
-        tableBody.innerHTML = data.map(user => {
+        // Client-side Pagination
+        const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+        const start = (userPage - 1) * ITEMS_PER_PAGE;
+        const pageData = data.slice(start, start + ITEMS_PER_PAGE);
+
+        tableBody.innerHTML = pageData.map(user => {
             const postCount = user.posts?.[0]?.count || 0;
             const statusClass = user.is_banned ? 'banned' : 'active';
             const statusText = user.is_banned ? 'Banned' : 'Active';
-            const joinedDate = new Date(user.updated_at).toLocaleDateString();
+
+            // Format joined date with exact time
+            const dateObj = new Date(user.created_at);
+            const joinedDate = isNaN(dateObj.getTime()) ? 'N/A' :
+                dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) +
+                ' ' + dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
             const avatar = user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=1e293b&color=fff`;
 
             return `
@@ -219,7 +374,7 @@ async function fetchUserManagement() {
                     </td>
                     <td><span class="badge ${statusClass}">${statusText}</span></td>
                     <td>${postCount}</td>
-                    <td>${joinedDate}</td>
+                    <td class="joined-col">${joinedDate}</td>
                     <td><code style="font-size: 10px; opacity: 0.6;">${user.device_token ? user.device_token.slice(0, 8) + '...' : 'N/A'}</code></td>
                     <td>
                         <div class="action-btns">
@@ -239,6 +394,11 @@ async function fetchUserManagement() {
             `;
         }).join('');
 
+        renderPagination(pagination, userPage, totalPages, (p) => {
+            userPage = p;
+            fetchUserManagement();
+        });
+
         // Bind Ban Listeners
         tableBody.querySelectorAll('.ban-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
@@ -251,7 +411,6 @@ async function fetchUserManagement() {
                         await supabase.rpc('hakim_unban_user', { p_device_token: token });
                         showToast('Intelligence restriction lifted.');
                         fetchUserManagement();
-                        fetchAppeals();
                     }
                 } else {
                     const reason = prompt("Enter Ban Reason (Violations, Spam, etc.):");
@@ -269,9 +428,12 @@ async function fetchUserManagement() {
 }
 
 // 5. Post Management Table
+let postPage = 1;
+
 async function fetchPostManagement() {
     try {
         const tableBody = document.getElementById('postTableBody');
+        const pagination = document.getElementById('postPagination');
         if (!tableBody) return;
 
         const { data, error } = await supabase
@@ -281,13 +443,25 @@ async function fetchPostManagement() {
 
         if (error) throw error;
 
-        tableBody.innerHTML = data.map(post => {
+        // Client-side Pagination
+        const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+        const start = (postPage - 1) * ITEMS_PER_PAGE;
+        const pageData = data.slice(start, start + ITEMS_PER_PAGE);
+
+        tableBody.innerHTML = pageData.map(post => {
             const author = post.profiles?.full_name || 'Anonymous';
             const status = post.status || 'Open';
             const snippet = truncate(post.content, 40);
 
+            // Format precise post date
+            const dateObj = new Date(post.created_at);
+            const postDate = isNaN(dateObj.getTime()) ? 'N/A' :
+                dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) +
+                ' ' + dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
             return `
                 <tr>
+                    <td class="joined-col">${postDate}</td>
                     <td>${snippet}</td>
                     <td>${author}</td>
                     <td>${post.province || 'N/A'}</td>
@@ -306,6 +480,11 @@ async function fetchPostManagement() {
                 </tr>
             `;
         }).join('');
+
+        renderPagination(pagination, postPage, totalPages, (p) => {
+            postPage = p;
+            fetchPostManagement();
+        });
 
         setupPostActions(tableBody, data);
     } catch (err) {
@@ -376,10 +555,12 @@ async function fetchAppeals() {
         }
 
         tableBody.innerHTML = data.map(appeal => {
-            const date = new Date(appeal.created_at).toLocaleDateString();
+            const dateObj = new Date(appeal.created_at);
+            const dateStr = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) +
+                ' ' + dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
             return `
                 <tr>
-                    <td>${date}</td>
+                    <td>${dateStr}</td>
                     <td>${appeal.contact_email}</td>
                     <td><code style="font-size:10px;">${appeal.device_token}</code></td>
                     <td>${appeal.reason || 'No reason provided'}</td>
@@ -460,11 +641,97 @@ function setupEventListeners() {
     });
 
     safeAddEvent('langToggle', 'click', () => {
-        alert('Translation System Integrated - Swapping Lexicon...');
+        const currentLang = localStorage.getItem('hg_lang') || 'en';
+        const newLang = currentLang === 'en' ? 'np' : 'en';
+        localStorage.setItem('hg_lang', newLang);
+        showToast(`System Lexicon Swapped to ${newLang.toUpperCase()}`);
+        // In a real app, this would trigger a re-render of all text
     });
+
+    // Wire up Export Buttons
+    document.querySelectorAll('.panel-action.secondary').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const panelTitle = e.target.closest('.tactical-panel').querySelector('h3').textContent;
+            if (panelTitle.includes('USER')) {
+                exportTableToCSV('userTable', 'hakim_users_export.csv');
+            } else if (panelTitle.includes('POST')) {
+                exportTableToCSV('postTable', 'hakim_posts_export.csv');
+            }
+        });
+    });
+
+    // System Online Toggle
+    const statusIndicator = document.querySelector('.status-indicator');
+    if (statusIndicator) {
+        statusIndicator.style.cursor = 'pointer';
+        statusIndicator.addEventListener('click', () => {
+            const dot = statusIndicator.querySelector('.status-dot');
+            const isOnline = !statusIndicator.textContent.includes('OFFLINE');
+
+            if (isOnline) {
+                statusIndicator.style.color = 'var(--accent-red)';
+                if (dot) dot.style.background = 'var(--accent-red)';
+                statusIndicator.innerHTML = '<span class="status-dot" style="background:var(--accent-red)"></span> SYSTEM OFFLINE';
+                showToast('Platform restricted. Maintenance mode active.');
+            } else {
+                statusIndicator.style.color = 'var(--accent-green)';
+                if (dot) dot.style.background = 'var(--accent-green)';
+                statusIndicator.innerHTML = '<span class="status-dot" style="background:var(--accent-green)"></span> SYSTEM ONLINE';
+                showToast('Platform live. Tactical operations resumed.');
+            }
+        });
+    }
+}
+
+function exportTableToCSV(tableId, filename) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+
+    let csv = [];
+    const rows = table.querySelectorAll('tr');
+
+    for (const row of rows) {
+        const cols = row.querySelectorAll('td, th');
+        const rowData = Array.from(cols).map(col => `"${col.textContent.trim().replace(/"/g, '""')}"`);
+        csv.push(rowData.join(','));
+    }
+
+    const csvFile = new Blob([csv.join('\n')], { type: 'text/csv' });
+    const downloadLink = document.createElement('a');
+    downloadLink.download = filename;
+    downloadLink.href = window.URL.createObjectURL(csvFile);
+    downloadLink.style.display = 'none';
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    showToast(`Export Complete: ${filename}`);
 }
 
 // --- Helpers ---
+function renderPagination(container, current, total, onPageChange) {
+    if (!container) return;
+    if (total <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = `
+        <button class="tactical-btn-small" ${current === 1 ? 'disabled' : ''} id="prevPage">PREV</button>
+        <span style="font-size: 0.7rem; font-weight:700; display:flex; align-items:center; padding:0 0.5rem; color:var(--text-muted);">
+            PAGE ${current} / ${total}
+        </span>
+        <button class="tactical-btn-small" ${current === total ? 'disabled' : ''} id="nextPage">NEXT</button>
+    `;
+
+    container.innerHTML = html;
+
+    const prev = container.querySelector('#prevPage');
+    const next = container.querySelector('#nextPage');
+
+    if (prev) prev.onclick = () => onPageChange(current - 1);
+    if (next) next.onclick = () => onPageChange(current + 1);
+}
+
 function truncate(str, len) {
     if (!str) return "";
     if (str.length <= len) return str;
