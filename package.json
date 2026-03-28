@@ -1,0 +1,23 @@
+{
+  "name": "primary",
+  "version": "1.0.0",
+  "description": "Hamro Gunaso is a transparent community platform designed for Nepalese citizens to report civic problems and share actionable suggestions. Built with a focus on transparency and community engagement, it empowers voices that shape the nation.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shrawanb1/hamro-gunaso.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shrawanb1/hamro-gunaso/issues"
+  },
+  "homepage": "https://github.com/shrawanb1/hamro-gunaso#readme",
+  "dependencies": {
+    "@vercel/speed-insights": "^2.0.0"
+  }
+}
